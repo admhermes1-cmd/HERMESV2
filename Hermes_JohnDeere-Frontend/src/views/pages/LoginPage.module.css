@@ -1,0 +1,238 @@
+/* ═══════════════════════════════════════════════════════════════
+   LoginPage.module.css
+   Estilos escopados para a página de login do HERMES.
+   Todas as medidas usam as variáveis CSS globais de `global.css`.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Container ──────────────────────────────────────────────────
+   Ocupa toda a altura do painel direito entregue pelo AuthLayout
+   e centraliza o card vertical e horizontalmente.
+   ─────────────────────────────────────────────────────────────── */
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  box-sizing: border-box;
+}
+
+/* ── Card ────────────────────────────────────────────────────────
+   Superfície principal com sombra suave e cantos arredondados.
+   ─────────────────────────────────────────────────────────────── */
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  animation: cardReveal 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Cabeçalho ───────────────────────────────────────────────────
+   Logo mark, título e subtítulo centralizados.
+   ─────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  text-align: center;
+}
+
+.logoMark {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--border-radius-md);
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-xs);
+  box-shadow: 0 4px 14px rgba(54, 124, 43, 0.35);
+}
+
+.logoH {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-secondary);
+  line-height: 1;
+  letter-spacing: -0.5px;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── Banner de erro global ───────────────────────────────────────
+   Exibido quando `error` não é null. Fade-in suave.
+   ─────────────────────────────────────────────────────────────── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: #fef2f2;
+  border: 1px solid var(--color-error);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  animation: bannerFadeIn 0.25s ease both;
+}
+
+@keyframes bannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.errorBannerIcon {
+  flex-shrink: 0;
+}
+
+/* ── Formulário ──────────────────────────────────────────────────
+   Coluna com espaçamento uniforme entre campos e botão.
+   ─────────────────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* ── Wrapper de campo com ícone ──────────────────────────────────
+   Posicionamento relativo para ancorar os ícones absolutos.
+   O InputField já lida com seu próprio label/error interno;
+   este wrapper apenas injeta os ícones decorativos e o toggle.
+   ─────────────────────────────────────────────────────────────── */
+.fieldWrapper {
+  position: relative;
+}
+
+/* Ícone prefixado (Mail, Lock) — posicionado dentro do input */
+.fieldIcon {
+  position: absolute;
+  /* Ajuste vertical: alinha com o centro do input, descontando a altura do label.
+     O InputField renderiza um <label> de ~20px + gap de 4px antes do <input>. */
+  top: calc(20px + 4px + 50%);
+  transform: translateY(-50%);
+  left: 12px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/*
+  Para que o ícone não sobreponha o texto, o InputField precisa de padding-left
+  no seu <input>. Como o InputField é um componente externo com seus próprios estilos,
+  usamos o seletor de descendente para sobrescrever o padding apenas dentro do wrapper.
+  Se o InputField usa uma classe própria para o <input>, ajuste o seletor abaixo
+  conforme a implementação real do componente.
+*/
+.fieldWrapper input {
+  padding-left: 38px !important;
+}
+
+/* Toggle de visibilidade da senha — botão sufixado */
+.passwordToggle {
+  position: absolute;
+  top: calc(20px + 4px + 50%);
+  transform: translateY(-50%);
+  right: 12px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  transition: color 0.15s ease;
+  z-index: 1;
+}
+
+.passwordToggle:hover {
+  color: var(--color-text-primary);
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--border-radius-sm);
+}
+
+/* Garante que o texto de senha não sobreponha o botão de toggle */
+.fieldWrapper:has(.passwordToggle) input {
+  padding-right: 42px !important;
+}
+
+/* ── Rodapé ──────────────────────────────────────────────────────
+   Mensagem discreta de aviso de acesso restrito.
+   ─────────────────────────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  margin-top: var(--spacing-xs);
+}
+
+.footerText {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  opacity: 0.75;
+  letter-spacing: 0.01em;
+}
+
+/* ── Responsividade ──────────────────────────────────────────────
+   Em telas pequenas o card ocupa largura total com padding reduzido.
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .container {
+    padding: var(--spacing-md);
+    align-items: flex-start;
+    padding-top: var(--spacing-2xl);
+  }
+
+  .card {
+    padding: var(--spacing-xl) var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .title {
+    font-size: var(--font-size-xl);
+  }
+}

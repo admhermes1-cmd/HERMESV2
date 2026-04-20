@@ -1,0 +1,154 @@
+/* ─────────────────────────────────────────────
+   Table.module.css
+   Estilos do componente Table do HERMES.
+   Utiliza exclusivamente variáveis CSS globais
+   definidas em src/styles/global.css.
+───────────────────────────────────────────── */
+
+/* Wrapper com scroll horizontal para responsividade mobile */
+.wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  /* Garante que o border-radius apareça ao redor da tabela */
+  isolation: isolate;
+}
+
+/* Elemento <table> */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+}
+
+/* ── Cabeçalho ─────────────────────────────── */
+
+.th {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+  text-align: left;
+  /* Transição suave para qualquer estado futuro */
+  transition: background 0.15s;
+}
+
+/* Cabeçalho fixo (stickyHeader prop) */
+.stickyHeader .th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  /* Sombra sutil abaixo do header fixo para indicar scroll */
+  box-shadow: 0 1px 0 var(--color-border);
+}
+
+/* ── Corpo da tabela ───────────────────────── */
+
+.tr {
+  transition: background 0.15s;
+}
+
+/* Remove borda da última linha */
+.tr:last-child .td {
+  border-bottom: none;
+}
+
+.td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+/* ── Linha clicável ────────────────────────── */
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover .td {
+  background: #f0faf0; /* verde muito suave — coerente com --color-primary */
+}
+
+/* Foco via teclado (acessibilidade) */
+.clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* ── Alinhamentos de célula ────────────────── */
+
+.alignLeft {
+  text-align: left;
+}
+
+.alignCenter {
+  text-align: center;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+/* ── Truncamento de texto ──────────────────── */
+
+.truncate {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Skeleton loader ───────────────────────── */
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.skeletonCell {
+  height: 16px;
+  border-radius: var(--border-radius-sm);
+  /* Gradiente animado que simula brilho passando */
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    #e8e8e8 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Estado vazio ──────────────────────────── */
+
+.emptyCell {
+  text-align: center;
+  /* Usa --spacing-lg duplicado para compensar ausência de --spacing-2xl */
+  padding: calc(var(--spacing-lg) * 2) var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.emptyContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  /* Ícone Inbox com cor neutra */
+  color: var(--color-border);
+}
+
+.emptyContent span {
+  /* Texto da mensagem com cor levemente mais escura que o ícone */
+  color: var(--color-text-secondary);
+}

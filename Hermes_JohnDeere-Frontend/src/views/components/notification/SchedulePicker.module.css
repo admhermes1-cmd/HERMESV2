@@ -1,0 +1,157 @@
+/* ============================================================
+   SchedulePicker.module.css
+   Estilos do seletor de data e hora para agendamento
+   ============================================================ */
+
+/* Container principal */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+/* Label */
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  user-select: none;
+}
+
+/* Wrapper posicional para ícone + input + botão clear */
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Ícone de calendário — posicionado à esquerda do input */
+.icon {
+  position: absolute;
+  left: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+/* Input datetime-local nativo */
+.input {
+  width: 100%;
+  height: 40px;
+  /* Padding: esquerda para ícone (36px), direita para botão clear (40px) */
+  padding: 0 40px 0 36px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.15);
+  outline: none;
+}
+
+/* Ocultar o ícone nativo de calendário do browser —
+   o nosso CalendarClock substitui visualmente */
+.input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+}
+
+/* Firefox */
+.input::-moz-calendar-picker-indicator {
+  display: none;
+}
+
+/* Estado de erro */
+.inputError {
+  border-color: var(--color-error);
+}
+
+.inputError:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+/* Estado desabilitado */
+.inputDisabled {
+  background: var(--color-bg);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Botão de limpeza do valor — posicionado à direita */
+.clearBtn {
+  position: absolute;
+  right: var(--spacing-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  border-radius: var(--border-radius-sm);
+  transition: color 0.15s ease;
+  z-index: 2;
+  line-height: 1;
+}
+
+.clearBtn:hover {
+  color: var(--color-error);
+}
+
+.clearBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Preview amigável da data/hora selecionada */
+.preview {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-success);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Hint de modo imediato ativo (campo desabilitado) */
+.disabledHint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Texto de dica sobre fuso horário */
+.hintText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* Texto de erro externo */
+.errorText {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  line-height: 1.4;
+}

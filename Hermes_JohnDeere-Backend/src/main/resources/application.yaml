@@ -1,0 +1,153 @@
+# ============================================================
+# HERMES Backend — Configuração Principal (Profile: default / produção)
+# ============================================================
+# Este arquivo define o comportamento padrão do sistema.
+# Valores sensíveis NUNCA devem ser hardcoded aqui — use
+# variáveis de ambiente com fallback explícito apenas quando
+# o fallback for seguro (ex: portas). Segredos não têm fallback.
+# ============================================================
+
+# ── Servidor ────────────────────────────────────────────────
+server:
+  port: ${PORT:8080}
+  error:
+    # Não vazar mensagens de exceção interna para o cliente
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+# ── Aplicação Spring ────────────────────────────────────────
+spring:
+  application:
+    name: hermes-backend
+
+  # Profile ativo é controlado pela variável de ambiente.
+  # Em produção, garanta que SPRING_PROFILES_ACTIVE=prod (ou omita para usar este default).
+  # Em desenvolvimento, o docker-compose / IDE deve setar SPRING_PROFILES_ACTIVE=dev.
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # ── DataSource (PostgreSQL + HikariCP) ────────────────────
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/hermes}
+    username: ${DATABASE_USERNAME:hermes}
+    password: ${DATABASE_PASSWORD:hermes}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      # Pool dimensionado para 1.000 e-mails/dia com burst de 20-30/min
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000     # 30s para obter conexão do pool
+      idle-timeout: 600000          # 10min: encerra conexões ociosas
+      max-lifetime: 1800000         # 30min: recicla conexões para evitar stale
+      pool-name: HermesHikariPool
+      # Valida conexão antes de entregar ao aplicativo
+      connection-test-query: SELECT 1
+
+  # ── JPA / Hibernate ───────────────────────────────────────
+  jpa:
+    hibernate:
+      # Em produção: apenas valida o schema — nunca altera.
+      # O schema deve ser gerenciado por migrações externas (Flyway/Liquibase)
+      # ou criado manualmente em produção.
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false             # evita lazy-loading fora da transação
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        default_schema: public
+        # Batch insert/update — melhora performance em operações em massa
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+
+  # ── E-mail (Gmail SMTP com TLS) ───────────────────────────
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    # MAIL_USERNAME: endereço Gmail (ex: noreply@empresa.com)
+    username: ${MAIL_USERNAME}
+    # MAIL_PASSWORD: App Password gerada em myaccount.google.com/apppasswords
+    # NÃO é a senha da conta Google — ative autenticação de 2 fatores primeiro.
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true          # rejeita conexão sem TLS
+          connectiontimeout: 5000   # 5s para estabelecer conexão TCP
+          timeout: 5000             # 5s para leitura de resposta SMTP
+          writetimeout: 5000        # 5s para envio de dados
+
+  # ── Jackson ───────────────────────────────────────────────
+  jackson:
+    default-property-inclusion: non_null   # omite campos null no JSON
+    serialization:
+      write-dates-as-timestamps: false      # datas como ISO-8601 string
+    time-zone: UTC
+
+# ── Configurações proprietárias do HERMES ───────────────────
+hermes:
+
+  # JWT — autenticação stateless
+  jwt:
+    # JWT_SECRET: string aleatória de no mínimo 256 bits (32 bytes em hex).
+    # Gere com: openssl rand -hex 32
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION:3600000}              # 1 hora em ms
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 dias em ms
+
+  # E-mail — configurações do remetente e limites
+  mail:
+    from: ${MAIL_FROM:noreply@hermes.com}
+    from-name: ${MAIL_FROM_NAME:HERMES Notificações}
+    # Limite total de 10MB por notificação (corpo + anexos)
+    max-size-bytes: 10485760
+
+  # Usuário administrador — criado via seed na inicialização (DataInitializer.java)
+  admin:
+    email: ${ADMIN_EMAIL:admin@hermes.com}
+    # Em produção: forneça o hash bcrypt da senha via variável de ambiente.
+    # Gere com: htpasswd -bnBC 10 "" sua_senha | tr -d ':\n'
+    password: ${ADMIN_PASSWORD}
+    name: ${ADMIN_NAME:Administrador}
+
+  # Scheduler — processamento de mensagens agendadas
+  scheduler:
+    # Verifica mensagens agendadas a cada 30 segundos
+    cron: "*/30 * * * * *"
+    max-retry-attempts: 3
+
+  # CORS — origens permitidas para acessar a API
+  cors:
+    # Em produção, liste explicitamente apenas os domínios do frontend
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://hermes.empresa.com}
+
+# ── Logging ─────────────────────────────────────────────────
+logging:
+  level:
+    root: WARN
+    com.hermes: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    # Formato estruturado — facilita ingestão por ELK/Loki em produção
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE:logs/hermes.log}
+
+# ── SpringDoc / Swagger UI ──────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    # Agrupa endpoints por tag para melhor navegação
+    tags-sorter: alpha
+    operations-sorter: alpha

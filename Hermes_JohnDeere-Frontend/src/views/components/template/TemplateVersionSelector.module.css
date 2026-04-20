@@ -1,0 +1,87 @@
+/* TemplateVersionSelector.module.css */
+
+/* ── Container ─────────────────────────────────────────────────────────── */
+.container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-sm);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-xs); /* evita cortar sombra/outline das pills */
+
+  /* Ocultar scrollbar — Firefox */
+  scrollbar-width: none;
+}
+
+/* Ocultar scrollbar — WebKit */
+.container::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Pill (botão de versão) ─────────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 12px;
+  border-radius: var(--border-radius-lg);
+  border: 1.5px solid var(--color-border);
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-family: inherit;
+  background: transparent;
+  color: var(--color-text-secondary);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+  outline: none;
+  line-height: 1;
+}
+
+.pill:hover:not(:disabled) {
+  background: var(--color-bg);
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.pill:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Pill selecionada */
+.pillSelected {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* Manter estilo selecionado no hover — não alterar quando já está selecionada */
+.pillSelected:hover:not(:disabled) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* Rótulo "v{N}" */
+.versionLabel {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* ── Estado vazio ───────────────────────────────────────────────────────── */
+.empty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Estado disabled ────────────────────────────────────────────────────── */
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
