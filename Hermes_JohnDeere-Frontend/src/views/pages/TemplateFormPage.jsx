@@ -34,7 +34,7 @@ import {
 
 import { useTemplateFormViewModel } from '../../viewmodels/useTemplateFormViewModel';
 import { useAuth } from '../../core/auth/useAuth';
-import { ROUTES, UI } from '../../core/constants/Appconstants';
+import { ROUTES, UI } from '../../core/constants/appConstants';
 import { TemplateChannel } from '../../models/Template';
 
 import Button from '../components/common/Button';
