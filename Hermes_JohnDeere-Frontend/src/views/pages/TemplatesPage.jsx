@@ -34,7 +34,7 @@ import {
 
 import { useTemplateListViewModel } from '../../viewmodels/useTemplateListViewModel';
 import { useAuth } from '../../core/auth/useAuth';
-import { ROUTES, PAGINATION, UI } from '../../core/constants/AppConstants';
+import { ROUTES, PAGINATION, UI } from '../../core/constants/appConstants';
 import { TemplateChannel } from '../../models/Template';
 
 import Table from '../components/common/Table';
