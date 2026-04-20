@@ -25,13 +25,13 @@
  */
 
 import { useContext } from 'react';
-import { AuthContext } from './Authcontext';
+import { AuthContext } from './AuthContext';
 import { UserRole } from '@/models/User';
 
 // ─── Tipos (JSDoc) ────────────────────────────────────────────────────────────
 
 /**
- * @typedef {import('./Authcontext').AuthContextShape} AuthContextShape
+ * @typedef {import('./AuthContext').AuthContextShape} AuthContextShape
  */
 
 /**
