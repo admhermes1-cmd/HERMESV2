@@ -32,8 +32,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 
-import { useAuth } from '../../core/auth/Useauth';
 import { useTemplateListViewModel } from '../../viewmodels/useTemplateListViewModel';
+import { useAuth } from '../../core/auth/useAuth';
 import { ROUTES, PAGINATION, UI } from '../../core/constants/AppConstants';
 import { TemplateChannel } from '../../models/Template';
 
