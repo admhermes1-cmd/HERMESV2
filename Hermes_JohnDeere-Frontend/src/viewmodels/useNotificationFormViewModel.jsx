@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { notificationService } from '../services/notificationService';
-import { templateService } from '../services/Templateservice';
+import { templateService } from '../services/templateService';
 import { getLatestVersion } from '../models/Template';
 import { validateNotification } from '../models/Notification';
-import { EMAIL, NOTIFICATION } from '../core/constants/Appconstants';
+import { EMAIL, NOTIFICATION } from '../core/constants/appConstants';
 
 /** Tamanho máximo total de anexos: 10 MB em bytes */
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;

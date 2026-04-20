@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Mail, X } from 'lucide-react';
-import { validateEmail } from '../../../utils/validators';
+import { validateEmail } from '../../../utils/Validators';
 import { EMAIL } from '../../../core/constants/appConstants';
 import styles from './RecipientInput.module.css';
 

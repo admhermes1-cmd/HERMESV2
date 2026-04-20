@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, MapPin, Home, X } from 'lucide-react';
 
 import { useAuth } from '../../core/auth/useAuth';
-import { ROUTES } from '../../core/constants/Appconstants';
+import { ROUTES } from '../../core/constants/AppConstants';
 import Button from '../components/common/Button';
 import styles from './NotFoundPage.module.css';
 

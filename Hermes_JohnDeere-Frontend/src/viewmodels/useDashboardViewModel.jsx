@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { dashboardService } from '../services/dashboardService';
-import { PAGINATION } from '../core/constants/Appconstants';
+import { PAGINATION } from '../core/constants/appConstants';
 
 /** Intervalo de auto-refresh das estatísticas em milissegundos (60 segundos) */
 const STATS_REFRESH_INTERVAL_MS = 60_000;

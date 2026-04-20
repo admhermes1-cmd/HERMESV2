@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import Badge from '../common/Badge';
-import { formatDate } from '../../../utils/formatters';
+import { formatDate } from '../../../utils/Formatters';
 import styles from './TemplateVersionSelector.module.css';
 
 /**

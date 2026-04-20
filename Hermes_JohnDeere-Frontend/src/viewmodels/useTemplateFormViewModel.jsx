@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { templateService } from '../services/Templateservice';
+import { templateService } from '../services/templateService';
 import { getLatestVersion } from '../models/Template';
-import { TEMPLATE } from '../core/constants/Appconstants';
+import { TEMPLATE } from '../core/constants/appConstants';
 
 /** Estrutura inicial de um formulário de template vazio */
 const EMPTY_FORM = {

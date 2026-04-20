@@ -31,11 +31,11 @@ import {
 
 import { useDashboardViewModel } from '../../viewmodels/useDashboardViewModel';
 import { useAuth } from '../../core/auth/useAuth';
-import { ROUTES } from '../../core/constants/Appconstants';
+import { ROUTES } from '../../core/constants/appConstants';
 import Table from '../components/common/Table';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
-import { formatDate } from '../../utils/formatters';
+import { formatDate } from '../../utils/Formatters';
 
 import styles from './DashboardPage.module.css';
 

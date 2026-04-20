@@ -34,7 +34,7 @@ import {
 
 import { useAuth } from '../../core/auth/Useauth';
 import { useTemplateListViewModel } from '../../viewmodels/useTemplateListViewModel';
-import { ROUTES, PAGINATION, UI } from '../../core/constants/Appconstants';
+import { ROUTES, PAGINATION, UI } from '../../core/constants/AppConstants';
 import { TemplateChannel } from '../../models/Template';
 
 import Table from '../components/common/Table';
@@ -42,7 +42,7 @@ import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 
-import { formatDate } from '../../utils/formatters';
+import { formatDate } from '../../utils/Formatters';
 
 import styles from './TemplatesPage.module.css';
 

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '../core/auth/Useauth';
+import { useAuth } from '../core/auth/useAuth';
 import { authService } from '../services/authService';
-import { ROUTES } from '../core/constants/Appconstants';
+import { ROUTES } from '../core/constants/appConstants';
 
 /**
  * ViewModel para a tela de Login.

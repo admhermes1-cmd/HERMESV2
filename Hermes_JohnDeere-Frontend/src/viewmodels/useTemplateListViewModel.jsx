@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { templateService } from '../services/Templateservice';
-import { PAGINATION } from '../core/constants/Appconstants';
+import { templateService } from '../services/templateService';
+import { PAGINATION } from '../core/constants/appConstants';
 
 /**
  * ViewModel para a listagem de Templates.

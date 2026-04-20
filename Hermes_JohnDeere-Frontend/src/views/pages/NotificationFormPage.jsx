@@ -46,7 +46,7 @@ import {
 
 import { useNotificationFormViewModel } from '../../viewmodels/useNotificationFormViewModel';
 import { useAuth } from '../../core/auth/useAuth';
-import { ROUTES, EMAIL, NOTIFICATION, UI } from '../../core/constants/Appconstants';
+import { ROUTES, EMAIL, NOTIFICATION, UI } from '../../core/constants/appConstants';
 import { NotificationChannel } from '../../models/Notification';
 
 import Button from '../components/common/Button';
@@ -57,7 +57,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import RecipientInput from '../components/notification/RecipientInput';
 import SchedulePicker from '../components/notification/SchedulePicker';
 
-import { formatBytes } from '../../utils/formatters';
+import { formatBytes } from '../../utils/Formatters';
 
 import styles from './NotificationFormPage.module.css';
 

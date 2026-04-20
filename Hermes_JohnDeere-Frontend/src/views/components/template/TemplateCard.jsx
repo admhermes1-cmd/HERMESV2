@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import { Mail, Smartphone, MessageCircle, GitBranch, Clock, Pencil, Trash2 } from 'lucide-react';
 import Button from '../common/Button';
 import Badge from '../common/Badge';
-import { formatDate } from '../../../utils/formatters';
+import { formatDate } from '../../../utils/Formatters';
 import { UI } from '../../../core/constants/appConstants';
 import styles from './TemplateCard.module.css';
 
