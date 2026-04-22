@@ -1,23 +1,16 @@
 package com.hermes.config;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.mail.javamail.JavaMailSender;
 
 /**
  * Configuração de e-mail do HERMES.
  *
- * <p>O {@link JavaMailSender} é auto-configurado pelo Spring Boot via {@code spring.mail.*}
- * (host SMTP, porta, credenciais). Esta classe centraliza as propriedades customizadas
- * do HERMES — remetente, nome de exibição e limite de tamanho de anexos —
- * expondo-as para injeção nos services que enviam e-mail.</p>
- *
- * <p><b>Uso principal:</b> O {@code EmailService} injeta este {@code MailConfig}
- * para montar os headers dos e-mails ({@code From}, {@code Reply-To}) e validar
- * o tamanho de anexos antes do envio.</p>
+ * <p>Centraliza as propriedades customizadas do HERMES — remetente, nome de exibição
+ * e limite de tamanho de anexos — expondo-as para injeção nos services que enviam
+ * e-mail. O {@link org.springframework.mail.javamail.JavaMailSender} é auto-configurado
+ * pelo Spring Boot via {@code spring.mail.*} e injetado diretamente no
+ * {@code EmailService}, sem necessidade de re-exposição aqui.</p>
  *
  * <p><b>Configuração SMTP (application.yml):</b></p>
  * <pre>
@@ -38,7 +31,6 @@ import org.springframework.mail.javamail.JavaMailSender;
  *     max-size-bytes: 10485760   # 10 MB
  * </pre>
  */
-@Slf4j
 @Configuration
 public class MailConfig {
 
@@ -68,36 +60,6 @@ public class MailConfig {
      */
     @Value("${hermes.mail.max-size-bytes}")
     private long maxSizeBytes;
-
-    /**
-     * Instância de {@link JavaMailSender} auto-configurada pelo Spring Boot.
-     *
-     * <p>O Spring Boot auto-configura o {@code JavaMailSender} com base em
-     * {@code spring.mail.*}. A injeção via {@code @Autowired} garante que
-     * usamos exatamente a instância gerenciada pelo container, com todas as
-     * configurações de connection pool, timeout e TLS aplicadas.</p>
-     */
-    @Autowired
-    private JavaMailSender autoConfiguredMailSender;
-
-    /**
-     * Expõe o {@link JavaMailSender} auto-configurado pelo Spring Boot como bean nomeado.
-     *
-     * <p>O JavaMailSender é auto-configurado pelo Spring Boot via {@code spring.mail.*}
-     * — este bean centraliza as propriedades customizadas do HERMES e garante
-     * que o sender esteja disponível para injeção com qualificação explícita
-     * se necessário.</p>
-     *
-     * <p>A instância retornada já possui SMTP host, porta, credenciais e
-     * configurações de TLS/STARTTLS aplicadas pela auto-configuração do Spring.</p>
-     *
-     * @return o {@link JavaMailSender} configurado e pronto para uso
-     */
-    @Bean
-    public JavaMailSender javaMailSender() {
-        log.info("JavaMailSender configurado — remetente: {}", getFormattedSender());
-        return autoConfiguredMailSender;
-    }
 
     /**
      * Retorna o endereço de e-mail do remetente.
