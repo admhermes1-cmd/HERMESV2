@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../core/auth/useAuth';
-import { authService } from '../services/authService';
 import { ROUTES } from '../core/constants/appConstants';
 
 /**
@@ -51,13 +50,7 @@ export function useLoginViewModel(navigate) {
     setIsLoading(true);
 
     try {
-      const { user, token, refreshToken } = await authService.login({
-        email: form.email.trim(),
-        password: form.password,
-      });
-
-      // Persiste autenticação no contexto global
-      login({ user, token, refreshToken });
+      await login(form.email.trim(), form.password);
 
       // Redireciona para a rota original interceptada pelo guard, ou para o dashboard
       const destination = location.state?.from ?? ROUTES.DASHBOARD;
