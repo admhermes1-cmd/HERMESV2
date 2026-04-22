@@ -67,14 +67,10 @@ export function useLoginViewModel(navigate) {
   }
 
   return {
-    state: {
-      form,
+    form,
       isLoading,
-      error,
-    },
-    actions: {
-      handleChange,
-      handleSubmit,
-    },
-  };
+        error,
+          handleChange,
+            handleSubmit,
+            };
 }
