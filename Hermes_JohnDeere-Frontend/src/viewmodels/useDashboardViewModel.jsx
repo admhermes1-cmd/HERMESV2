@@ -199,19 +199,15 @@ export function useDashboardViewModel() {
   }
 
   return {
-    state: {
-      stats,
-      logs,
-      logsTotal,
-      isLoadingStats,
-      isLoadingLogs,
-      error,
-      filters,
-    },
-    actions: {
-      handleLogFilterChange,
-      handleLogPageChange,
-      refresh,
-    },
+    stats,
+    isLoadingStats,
+    logs,
+    logsTotal,
+    isLoadingLogs,
+    error,
+    filters,
+    handleLogFilterChange,
+    handleLogPageChange,
+    refresh,
   };
 }

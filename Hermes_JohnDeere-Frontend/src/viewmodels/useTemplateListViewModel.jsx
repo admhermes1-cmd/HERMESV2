@@ -146,18 +146,14 @@ export function useTemplateListViewModel() {
   }
 
   return {
-    state: {
-      templates,
-      total,
-      isLoading,
-      isDeleting,
-      error,
-      filters,
-    },
-    actions: {
-      handleFilterChange,
-      handlePageChange,
-      handleDelete,
-    },
+    templates,
+    total,
+    isLoading,
+    isDeleting,
+    error,
+    filters,
+    handleFilterChange,
+    handlePageChange,
+    handleDelete,
   };
 }

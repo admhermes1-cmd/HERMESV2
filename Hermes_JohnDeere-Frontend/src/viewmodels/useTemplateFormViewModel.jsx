@@ -249,23 +249,20 @@ export function useTemplateFormViewModel() {
   }
 
   return {
-    state: {
-      form,
-      versions,
-      selectedVersion,
-      extractedVariables,
-      isEditing,
-      isLoading,
-      isSaving,
-      error,
-    },
-    actions: {
-      handleChange,
-      handleVersionChange,
-      handleVersionFieldChange,
-      handleSubmit,
-      handleAddVersion,
-      handleSaveVersion,
-    },
+    form,
+    versions,
+    selectedVersion,
+    extractedVariables,
+    isLoading,
+    isSaving,
+    error,
+    isEditMode,
+    templateId,
+    handleChange,
+    handleSubmit,
+    handleVersionChange,
+    handleVersionFieldChange,
+    handleAddVersion,
+    handleSaveVersion,
   };
 }
