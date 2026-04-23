@@ -126,7 +126,7 @@ hermes:
   # CORS — origens permitidas para acessar a API
   cors:
     # Em produção, liste explicitamente apenas os domínios do frontend
-    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://tentativan2.vercel.app}
 
 # ── Logging ─────────────────────────────────────────────────
 logging:
