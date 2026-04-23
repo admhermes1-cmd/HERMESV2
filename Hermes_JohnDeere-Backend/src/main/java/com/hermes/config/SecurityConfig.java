@@ -65,7 +65,7 @@ public class SecurityConfig {
      * Exemplo: {@code http://localhost:5173,https://hermes.empresa.com}
      */
     @Value("${hermes.cors.allowed-origins}")
-    private String[] allowedOrigins;
+    private String allowedOrigins;
 
     /**
      * Cadeia de filtros de segurança principal do HERMES.
@@ -249,8 +249,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+
         // Origins configuráveis via propriedade — nunca hardcoded.
-        config.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        config.setAllowedOrigins(origins);
 
         // Métodos HTTP permitidos, incluindo OPTIONS para preflight do browser.
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
@@ -273,7 +275,7 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 
-        log.info("CORS configurado para origins: {}", Arrays.toString(allowedOrigins));
+        log.info("CORS configurado para origins: {}", origins);
         return source;
     }
 }
