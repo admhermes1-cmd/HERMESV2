@@ -133,27 +133,26 @@
 }
 
 /* ── Wrapper de campo com ícone ──────────────────────────────────
-   Posicionamento relativo para ancorar os ícones absolutos.
-   O InputField já lida com seu próprio label/error interno;
-   este wrapper apenas injeta os ícones decorativos e o toggle.
+   Flexbox que alinha ícone, input e toggle verticalmente com o textbox.
+   O InputField renderiza label + input em coluna; este wrapper engloba tudo
+   e mantém os ícones alinhados ao input via align-items: flex-end.
    ─────────────────────────────────────────────────────────────── */
 .fieldWrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
   position: relative;
 }
 
-/* Ícone prefixado (Mail, Lock) — posicionado dentro do input */
+/* Ícone prefixado (Mail, Lock) — alinhado ao baseline do input */
 .fieldIcon {
-  position: absolute;
-  /* Ajuste vertical: alinha com o centro do input, descontando a altura do label.
-     O InputField renderiza um <label> de ~20px + gap de 4px antes do <input>. */
-  top: calc(20px + 4px + 50%);
-  transform: translateY(-50%);
-  left: 12px;
   color: var(--color-text-secondary);
   display: flex;
   align-items: center;
+  justify-content: center;
   pointer-events: none;
-  z-index: 1;
+  flex-shrink: 0;
+  padding-bottom: 11px; /* Alinha com o centro do input ~40px de altura */
 }
 
 /*
@@ -164,25 +163,23 @@
   conforme a implementação real do componente.
 */
 .fieldWrapper input {
-  padding-left: 38px !important;
+  padding-left: 12px !important;
 }
 
-/* Toggle de visibilidade da senha — botão sufixado */
+/* Toggle de visibilidade da senha — botão sufixado, alinhado com o input */
 .passwordToggle {
-  position: absolute;
-  top: calc(20px + 4px + 50%);
-  transform: translateY(-50%);
-  right: 12px;
   background: transparent;
   border: none;
-  padding: 0;
+  padding: 8px 4px;
   cursor: pointer;
   color: var(--color-text-secondary);
   display: flex;
   align-items: center;
+  justify-content: center;
   line-height: 1;
   transition: color 0.15s ease;
-  z-index: 1;
+  flex-shrink: 0;
+  margin-bottom: 11px; /* Alinha com o centro do input */
 }
 
 .passwordToggle:hover {
@@ -197,7 +194,7 @@
 
 /* Garante que o texto de senha não sobreponha o botão de toggle */
 .fieldWrapper:has(.passwordToggle) input {
-  padding-right: 42px !important;
+  padding-right: 12px !important;
 }
 
 /* ── Rodapé ──────────────────────────────────────────────────────

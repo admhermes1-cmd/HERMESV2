@@ -200,14 +200,14 @@ export function useDashboardViewModel() {
 
   return {
     stats,
-    isLoadingStats,
-    logs,
-    logsTotal,
-    isLoadingLogs,
-    error,
-    filters,
-    handleLogFilterChange,
-    handleLogPageChange,
-    refresh,
-  };
+      isLoadingStats,
+        logs,
+          logsTotal,
+            isLoadingLogs,
+              error,
+                filters,
+                  handleLogFilterChange,
+                    handleLogPageChange,
+                      refresh,
+                     };
 }

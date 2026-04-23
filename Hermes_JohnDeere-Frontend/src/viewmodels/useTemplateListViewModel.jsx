@@ -147,13 +147,13 @@ export function useTemplateListViewModel() {
 
   return {
     templates,
-    total,
-    isLoading,
-    isDeleting,
-    error,
-    filters,
-    handleFilterChange,
-    handlePageChange,
-    handleDelete,
-  };
+      total,
+        isLoading,
+          isDeleting,
+            error,
+              filters,
+                handleFilterChange,
+                  handlePageChange,
+                    handleDelete,
+                    };
 }
