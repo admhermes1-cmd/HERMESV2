@@ -102,6 +102,9 @@ public class SecurityConfig {
             // Regras de autorização por endpoint e método HTTP.
             .authorizeHttpRequests(auth -> auth
 
+                // ─── Liberar preflight CORS ────────────────────────────────────
+                .requestMatchers(OPTIONS, "/**").permitAll()
+                
                 // ─── Endpoints públicos ────────────────────────────────────────────
                 // Login e refresh não exigem autenticação prévia.
                 .requestMatchers(POST, "/auth/login", "/auth/refresh").permitAll()
