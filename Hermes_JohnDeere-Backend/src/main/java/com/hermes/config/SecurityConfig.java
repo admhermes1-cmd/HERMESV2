@@ -64,7 +64,7 @@ public class SecurityConfig {
      * Suporta múltiplos valores separados por vírgula.
      * Exemplo: {@code http://localhost:5173,https://hermes.empresa.com}
      */
-    @Value("${hermes.cors.allowed-origins}")
+    @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
     /**
@@ -104,7 +104,7 @@ public class SecurityConfig {
 
                 // ─── Liberar preflight CORS ────────────────────────────────────
                 .requestMatchers(OPTIONS, "/**").permitAll()
-                
+
                 // ─── Endpoints públicos ────────────────────────────────────────────
                 // Login e refresh não exigem autenticação prévia.
                 .requestMatchers(POST, "/auth/login", "/auth/refresh").permitAll()
