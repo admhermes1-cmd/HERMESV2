@@ -144,9 +144,10 @@
 /* Ícone prefixado (Mail, Lock) — posicionado dentro do input */
 .fieldIcon {
   position: absolute;
-  /* Alinha verticalmente ao meio do input usando bottom.
-     Assume input com altura ~40px. Centraliza o ícone (17px) no input. */
-  bottom: calc(50% - 8.5px);
+  /* Alinha verticalmente ao meio do input usando top + transform.
+     Esta é a forma mais confiável de centralizar um elemento absolutamente posicionado. */
+  top: 50%;
+  transform: translateY(-50%);
   left: 12px;
   color: var(--color-text-secondary);
   display: flex;
@@ -170,7 +171,8 @@
 /* Toggle de visibilidade da senha — botão sufixado */
 .passwordToggle {
   position: absolute;
-  bottom: calc(50% - 8.5px);
+  top: 50%;
+  transform: translateY(-50%);
   right: 12px;
   background: transparent;
   border: none;
