@@ -6,23 +6,27 @@ import { authService } from '../services/authService';
 /**
  * ViewModel para a tela de Login.
  *
- * ATENÇÃO — rota de fallback pós-login:
- *   ROUTES.DASHBOARD está definido como '/dashboard', mas o AppRouter mapeia o
- *   dashboard na rota raiz '/'. Usar ROUTES.DASHBOARD aqui causaria um 404.
- *   O fallback correto é '/' (HOME), que o AppRouter resolve para DashboardPage.
+ * Retorna um objeto ACHADO (flat) para compatibilidade com a LoginPage,
+ * que desestrutura os campos diretamente do hook:
+ *   const { form, isLoading, error, handleChange, handleSubmit } = useLoginViewModel(navigate)
  *
- * @param {Function} navigate - Função de navegação do React Router (useNavigate)
+ * ATENÇÃO — rota de fallback pós-login:
+ *   ROUTES.DASHBOARD = '/dashboard', mas o AppRouter mapeia o dashboard em '/'.
+ *   Usar ROUTES.DASHBOARD causaria 404. O fallback correto é sempre '/'.
+ *
+ * O PrivateRoute injeta um objeto Location completo em `location.state.from`
+ * ao interceptar rotas protegidas. Por isso extraímos `.pathname` antes de
+ * navegar — passar um objeto Location para navigate() tem comportamento
+ * inconsistente entre versões do React Router v6.
+ *
+ * @param {Function} navigate - Retorno de useNavigate() passado pela View
  *
  * @returns {{
- *   state: {
- *     form: { email: string, password: string },
- *     isLoading: boolean,
- *     error: string | null
- *   },
- *   actions: {
- *     handleChange: (field: 'email' | 'password', value: string) => void,
- *     handleSubmit: (e: React.FormEvent) => Promise<void>
- *   }
+ *   form: { email: string, password: string },
+ *   isLoading: boolean,
+ *   error: string | null,
+ *   handleChange: (field: 'email' | 'password', value: string) => void,
+ *   handleSubmit: (e: React.FormEvent) => Promise<void>
  * }}
  */
 export function useLoginViewModel(navigate) {
@@ -34,7 +38,7 @@ export function useLoginViewModel(navigate) {
   const [error, setError] = useState(null);
 
   /**
-   * Atualiza um campo do formulário e limpa o erro exibido.
+   * Atualiza um campo do formulário e limpa qualquer erro visível.
    * @param {'email' | 'password'} field
    * @param {string} value
    */
@@ -45,12 +49,8 @@ export function useLoginViewModel(navigate) {
 
   /**
    * Submete o formulário de login.
-   *
-   * O PrivateRoute injeta um objeto Location completo em `state.from` ao
-   * interceptar uma rota protegida. Por isso extraímos `.pathname` antes de
-   * navegar — passar um objeto Location para navigate() pode causar
-   * comportamento inesperado em algumas versões do React Router v6.
-   *
+   * Em sucesso: persiste autenticação e navega para a rota de origem ou '/'.
+   * Em falha: expõe a mensagem de erro para a View.
    * @param {React.FormEvent} e
    */
   async function handleSubmit(e) {
@@ -64,14 +64,15 @@ export function useLoginViewModel(navigate) {
         password: form.password,
       });
 
+      // Persiste autenticação no contexto global
       login({ user, token, refreshToken });
 
-      // state.from é um objeto Location — extraímos apenas pathname
+      // state.from é um objeto Location injetado pelo PrivateRoute — extrair .pathname
       const from = location.state?.from;
       const destination =
         typeof from === 'string'
           ? from
-          : from?.pathname ?? '/'; // fallback: '/', NÃO ROUTES.DASHBOARD ('/dashboard' não existe no AppRouter)
+          : from?.pathname ?? '/'; // '/' = DashboardPage no AppRouter
 
       navigate(destination, { replace: true });
     } catch (err) {
@@ -84,8 +85,12 @@ export function useLoginViewModel(navigate) {
     }
   }
 
+  // Retorno flat — a LoginPage desestrutura tudo no nível raiz
   return {
-    state: { form, isLoading, error },
-    actions: { handleChange, handleSubmit },
+    form,
+    isLoading,
+    error,
+    handleChange,
+    handleSubmit,
   };
 }
