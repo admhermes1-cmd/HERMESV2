@@ -3,12 +3,21 @@ import { notificationService } from '../services/notificationService';
 import { templateService } from '../services/templateService';
 import { getLatestVersion } from '../models/Template';
 import { validateNotification } from '../models/Notification';
-import { EMAIL, NOTIFICATION } from '../core/constants/appConstants';
+import { EMAIL } from '../core/constants/appConstants';
 
-/** Tamanho máximo total de anexos: 10 MB em bytes */
-const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+/**
+ * Limite máximo de tamanho total de anexos.
+ * Usa EMAIL.MAX_TOTAL_SIZE_BYTES (não MAX_SIZE_BYTES — essa chave não existe).
+ */
+const MAX_ATTACHMENT_BYTES = EMAIL.MAX_TOTAL_SIZE_BYTES; // 10 * 1024 * 1024
 
-/** Estado inicial do formulário */
+/**
+ * Regex de validação de e-mail.
+ * EMAIL.REGEX não existe em appConstants — definida aqui localmente.
+ * Padrão RFC 5321 simplificado, adequado para validação de UI.
+ */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const EMPTY_FORM = {
   templateId: '',
   templateVersionId: '',
@@ -18,43 +27,50 @@ const EMPTY_FORM = {
   isImmediate: true,
 };
 
+const EMPTY_FIELD_ERRORS = {
+  templateId: '',
+  to: '',
+  cc: '',
+  bcc: '',
+  scheduledAt: '',
+  attachments: '',
+};
+
 /**
  * Valida se um endereço de e-mail é válido.
  * @param {string} email
  * @returns {boolean}
  */
 function isValidEmail(email) {
-  return EMAIL.REGEX.test(email.trim());
+  return EMAIL_REGEX.test(email.trim());
 }
 
 /**
- * Valida todos os endereços de e-mail em to, cc e bcc.
+ * Valida destinatários e retorna erros por campo.
  * @param {{ to: string[], cc: string[], bcc: string[] }} recipients
- * @returns {string | null} Mensagem de erro ou null se tudo estiver válido
+ * @returns {{ to: string, cc: string, bcc: string }}
  */
-function validateRecipients(recipients) {
-  const all = [
-    ...recipients.to.map((e) => ({ campo: 'TO', email: e })),
-    ...recipients.cc.map((e) => ({ campo: 'CC', email: e })),
-    ...recipients.bcc.map((e) => ({ campo: 'BCC', email: e })),
-  ];
-
-  for (const { campo, email } of all) {
-    if (!isValidEmail(email)) {
-      return `E-mail inválido no campo ${campo}: "${email}"`;
-    }
-  }
+function validateRecipientFields(recipients) {
+  const errors = { to: '', cc: '', bcc: '' };
 
   if (recipients.to.length === 0) {
-    return 'É necessário ao menos um destinatário no campo TO.';
+    errors.to = 'É necessário ao menos um destinatário no campo TO.';
+  } else {
+    const invalid = recipients.to.find((e) => !isValidEmail(e));
+    if (invalid) errors.to = `E-mail inválido: "${invalid}"`;
   }
 
-  return null;
+  const invalidCc = recipients.cc.find((e) => !isValidEmail(e));
+  if (invalidCc) errors.cc = `E-mail inválido: "${invalidCc}"`;
+
+  const invalidBcc = recipients.bcc.find((e) => !isValidEmail(e));
+  if (invalidBcc) errors.bcc = `E-mail inválido: "${invalidBcc}"`;
+
+  return errors;
 }
 
 /**
- * Extrai as variáveis obrigatórias de uma versão de template.
- * @param {import('../models/Template').TemplateVersion | null} version
+ * @param {object | null} version
  * @returns {string[]}
  */
 function extractRequiredVariables(version) {
@@ -65,39 +81,38 @@ function extractRequiredVariables(version) {
 /**
  * ViewModel para o formulário de envio/agendamento de Notificações.
  *
- * Gerencia seleção de template + versão, destinatários, variáveis, anexos e agendamento.
- * Realiza validações locais antes de chamar o service.
+ * Retorno ACHADO (flat) para compatibilidade com NotificationFormPage,
+ * que desestrutura todos os campos diretamente do hook.
+ *
+ * Correções em relação às constantes reais de appConstants:
+ *  - EMAIL.MAX_TOTAL_SIZE_BYTES  (era MAX_SIZE_BYTES — não existe)
+ *  - EMAIL.ALLOWED_ATTACHMENT_TYPES (era ALLOWED_EXTENSIONS — não existe)
+ *  - EMAIL_REGEX definida localmente (EMAIL.REGEX não existe em appConstants)
+ *  - PAGINATION.DEFAULT_PAGE_SIZE (era DEFAULT_LIMIT — não existe)
  *
  * @returns {{
- *   state: {
- *     form: {
- *       templateId: string,
- *       templateVersionId: string,
- *       recipients: { to: string[], cc: string[], bcc: string[] },
- *       variables: Record<string, string>,
- *       scheduledAt: string,
- *       isImmediate: boolean
- *     },
- *     attachments: File[],
- *     templates: import('../models/Template').Template[],
- *     selectedTemplate: import('../models/Template').Template | null,
- *     availableVersions: import('../models/Template').TemplateVersion[],
- *     requiredVariables: string[],
- *     totalAttachmentSize: number,
- *     isLoading: boolean,
- *     isSending: boolean,
- *     error: string | null
- *   },
- *   actions: {
- *     handleChange: (field: string, value: any) => void,
- *     handleRecipientsChange: (type: 'to' | 'cc' | 'bcc', value: string[]) => void,
- *     handleVariableChange: (key: string, value: string) => void,
- *     handleTemplateChange: (templateId: string) => Promise<void>,
- *     handleVersionChange: (versionId: string) => void,
- *     handleAttachmentsChange: (files: FileList | File[]) => void,
- *     handleToggleImmediate: () => void,
- *     handleSubmit: () => Promise<boolean>
- *   }
+ *   form: object,
+ *   recipients: { to: string[], cc: string[], bcc: string[] },
+ *   variables: Record<string, string>,
+ *   attachments: File[],
+ *   totalAttachmentSize: number,
+ *   templates: object[],
+ *   selectedTemplate: object | null,
+ *   selectedVersion: object | null,
+ *   availableVersions: object[],
+ *   requiredVariables: string[],
+ *   isLoading: boolean,
+ *   isSending: boolean,
+ *   error: string | null,
+ *   fieldErrors: Record<string, string>,
+ *   handleChange: Function,
+ *   handleRecipientsChange: Function,
+ *   handleVariableChange: Function,
+ *   handleTemplateChange: Function,
+ *   handleVersionChange: Function,
+ *   handleAttachmentsChange: Function,
+ *   handleToggleImmediate: Function,
+ *   handleSubmit: () => Promise<boolean>
  * }}
  */
 export function useNotificationFormViewModel() {
@@ -109,22 +124,28 @@ export function useNotificationFormViewModel() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState(EMPTY_FIELD_ERRORS);
 
-  // ---------- Derivados ----------
+  // Atalhos expostos na raiz para a View não acessar form.recipients e form.variables
+  const recipients = form.recipients;
+  const variables = form.variables;
 
-  /** Soma total do tamanho dos arquivos anexados em bytes */
   const totalAttachmentSize = useMemo(
     () => attachments.reduce((sum, f) => sum + f.size, 0),
     [attachments]
   );
 
-  /** Variáveis obrigatórias extraídas da versão selecionada */
-  const requiredVariables = useMemo(() => {
-    const version = availableVersions.find((v) => v.id === form.templateVersionId) ?? null;
-    return extractRequiredVariables(version);
-  }, [availableVersions, form.templateVersionId]);
+  const selectedVersion = useMemo(
+    () => availableVersions.find((v) => v.id === form.templateVersionId) ?? null,
+    [availableVersions, form.templateVersionId]
+  );
 
-  // ---------- Carrega lista de templates ao montar ----------
+  const requiredVariables = useMemo(
+    () => extractRequiredVariables(selectedVersion),
+    [selectedVersion]
+  );
+
+  // Carrega templates ao montar
   useEffect(() => {
     let cancelled = false;
 
@@ -150,7 +171,7 @@ export function useNotificationFormViewModel() {
 
   // ---------- Ações ----------
 
-  /**
+   /**
    * Atualiza um campo genérico do formulário.
    * @param {string} field
    * @param {*} value
@@ -167,6 +188,7 @@ export function useNotificationFormViewModel() {
    */
   function handleRecipientsChange(type, value) {
     setError(null);
+    setFieldErrors((prev) => ({ ...prev, [type]: '' }));
     setForm((prev) => ({
       ...prev,
       recipients: { ...prev.recipients, [type]: value },
@@ -180,6 +202,7 @@ export function useNotificationFormViewModel() {
    */
   function handleVariableChange(key, value) {
     setError(null);
+    setFieldErrors((prev) => ({ ...prev, [`variable_${key}`]: '' }));
     setForm((prev) => ({
       ...prev,
       variables: { ...prev.variables, [key]: value },
@@ -192,12 +215,8 @@ export function useNotificationFormViewModel() {
    */
   async function handleTemplateChange(templateId) {
     setError(null);
-    setForm((prev) => ({
-      ...prev,
-      templateId,
-      templateVersionId: '',
-      variables: {},
-    }));
+    setFieldErrors((prev) => ({ ...prev, templateId: '' }));
+    setForm((prev) => ({ ...prev, templateId, templateVersionId: '', variables: {} }));
     setAvailableVersions([]);
     setSelectedTemplate(null);
 
@@ -212,7 +231,6 @@ export function useNotificationFormViewModel() {
       setSelectedTemplate(template);
       setAvailableVersions(versionList);
 
-      // Pré-seleciona a versão mais recente
       const latest = getLatestVersion(template);
       if (latest) {
         setForm((prev) => ({ ...prev, templateVersionId: latest.id }));
@@ -227,16 +245,8 @@ export function useNotificationFormViewModel() {
     }
   }
 
-  /**
-   * Seleciona uma versão de template pelo ID e reseta as variáveis preenchidas.
-   * @param {string} versionId
-   */
   function handleVersionChange(versionId) {
-    setForm((prev) => ({
-      ...prev,
-      templateVersionId: versionId,
-      variables: {},
-    }));
+    setForm((prev) => ({ ...prev, templateVersionId: versionId, variables: {} }));
   }
 
   /**
@@ -246,8 +256,8 @@ export function useNotificationFormViewModel() {
    * @param {FileList | File[]} files
    */
   function handleAttachmentsChange(files) {
-    const fileArray = Array.from(files);
-    setAttachments(fileArray);
+    setFieldErrors((prev) => ({ ...prev, attachments: '' }));
+    setAttachments(Array.from(files));
   }
 
   /**
@@ -255,6 +265,7 @@ export function useNotificationFormViewModel() {
    * Ao voltar para imediato, limpa o campo scheduledAt.
    */
   function handleToggleImmediate() {
+    setFieldErrors((prev) => ({ ...prev, scheduledAt: '' }));
     setForm((prev) => ({
       ...prev,
       isImmediate: !prev.isImmediate,
@@ -269,42 +280,47 @@ export function useNotificationFormViewModel() {
    */
   async function handleSubmit() {
     setError(null);
+    setFieldErrors(EMPTY_FIELD_ERRORS);
 
-    // ----- Validações locais -----
+    let hasErrors = false;
+    const nextFieldErrors = { ...EMPTY_FIELD_ERRORS };
 
     if (!form.templateId) {
-      setError('Selecione um template antes de enviar.');
-      return false;
+      nextFieldErrors.templateId = 'Selecione um template.';
+      hasErrors = true;
     }
 
-    if (!form.templateVersionId) {
-      setError('Selecione uma versão do template.');
-      return false;
-    }
+    const recipientErrors = validateRecipientFields(form.recipients);
+    if (recipientErrors.to)  { nextFieldErrors.to  = recipientErrors.to;  hasErrors = true; }
+    if (recipientErrors.cc)  { nextFieldErrors.cc  = recipientErrors.cc;  hasErrors = true; }
+    if (recipientErrors.bcc) { nextFieldErrors.bcc = recipientErrors.bcc; hasErrors = true; }
 
-    const recipientError = validateRecipients(form.recipients);
-    if (recipientError) {
-      setError(recipientError);
-      return false;
-    }
-
-    // Variáveis obrigatórias preenchidas
     const missingVars = requiredVariables.filter(
       (key) => !form.variables[key] || form.variables[key].trim() === ''
     );
     if (missingVars.length > 0) {
-      setError(`Preencha as variáveis obrigatórias: ${missingVars.join(', ')}`);
-      return false;
+      missingVars.forEach((key) => {
+        nextFieldErrors[`variable_${key}`] = 'Campo obrigatório.';
+      });
+      hasErrors = true;
     }
 
-    // Tamanho total de anexos
+    if (!form.isImmediate && !form.scheduledAt) {
+      nextFieldErrors.scheduledAt = 'Informe a data e hora de envio.';
+      hasErrors = true;
+    }
+
     if (totalAttachmentSize > MAX_ATTACHMENT_BYTES) {
       const totalMB = (totalAttachmentSize / 1024 / 1024).toFixed(2);
-      setError(`O tamanho total dos anexos (${totalMB} MB) excede o limite de 10 MB.`);
+      nextFieldErrors.attachments = `Total de anexos (${totalMB} MB) excede o limite de 10 MB.`;
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      setFieldErrors(nextFieldErrors);
       return false;
     }
 
-    // Validação via model (pode verificar outros campos obrigatórios)
     const modelError = validateNotification({
       templateId: form.templateId,
       templateVersionId: form.templateVersionId,
@@ -318,20 +334,19 @@ export function useNotificationFormViewModel() {
       return false;
     }
 
-    // ----- Envio -----
-
     setIsSending(true);
 
     try {
-      const payload = {
-        templateId: form.templateId,
-        templateVersionId: form.templateVersionId,
-        recipients: form.recipients,
-        variables: form.variables,
-        scheduledAt: form.isImmediate ? null : form.scheduledAt || null,
-      };
-
-      await notificationService.sendNotification(payload, attachments.length ? attachments : undefined);
+      await notificationService.sendNotification(
+        {
+          templateId: form.templateId,
+          templateVersionId: form.templateVersionId,
+          recipients: form.recipients,
+          variables: form.variables,
+          scheduledAt: form.isImmediate ? null : form.scheduledAt || null,
+        },
+        attachments.length ? attachments : undefined
+      );
       return true;
     } catch (err) {
       if (err?.details) {
@@ -344,28 +359,29 @@ export function useNotificationFormViewModel() {
     }
   }
 
+  // Retorno flat — a View desestrutura tudo no nível raiz
   return {
     form,
-      recipients,
-        variables,
-          attachments,
-            totalAttachmentSize,
-              templates,
-                availableVersions,
-                  requiredVariables,
-                    selectedTemplate,
-                      selectedVersion,
-                        isLoading,
-                          isSending,
-                            error,
-                              fieldErrors,
-                                handleChange,
-                                  handleRecipientsChange,
-                                    handleVariableChange,
-                                      handleTemplateChange,
-                                        handleVersionChange,
-                                          handleAttachmentsChange,
-                                            handleToggleImmediate,
-                                              handleSubmit,
-                                              };
+    recipients,
+    variables,
+    attachments,
+    totalAttachmentSize,
+    templates,
+    selectedTemplate,
+    selectedVersion,
+    availableVersions,
+    requiredVariables,
+    isLoading,
+    isSending,
+    error,
+    fieldErrors,
+    handleChange,
+    handleRecipientsChange,
+    handleVariableChange,
+    handleTemplateChange,
+    handleVersionChange,
+    handleAttachmentsChange,
+    handleToggleImmediate,
+    handleSubmit,
+  };
 }

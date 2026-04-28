@@ -61,6 +61,7 @@ import { formatBytes } from '../../utils/Formatters';
 
 import styles from './NotificationFormPage.module.css';
 
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -188,21 +189,24 @@ export default function NotificationFormPage() {
   const nearLimit = totalRecipients >= EMAIL.MAX_RECIPIENTS * 0.8;
 
   const attachmentPercent = Math.min(
-    (totalAttachmentSize / EMAIL.MAX_SIZE_BYTES) * 100,
+    (totalAttachmentSize / EMAIL.MAX_TOTAL_SIZE_BYTES) * 100,
     100
   );
-  const attachmentOverLimit = totalAttachmentSize > EMAIL.MAX_SIZE_BYTES;
+  const attachmentOverLimit = totalAttachmentSize > EMAIL.MAX_TOTAL_SIZE_BYTES;
   const attachmentNearLimit = attachmentPercent > 80 && !attachmentOverLimit;
 
   const isEmailChannel = selectedTemplate?.channel === NotificationChannel.EMAIL;
 
   const minDateTime = new Date(
-    Date.now() + NOTIFICATION.MIN_SCHEDULE_MINUTES * 60000
+    Date.now() + NOTIFICATION.MIN_SCHEDULE_OFFSET_MINUTES * 60000
   ).toISOString();
 
   const submitLabel = form.isImmediate ? 'Enviar Notificação' : 'Agendar Notificação';
   const submitIcon = form.isImmediate ? Send : Clock;
   const SubmitIcon = submitIcon;
+
+  // Tamanho máximo em MB para exibição legível na UI
+  const maxSizeMB = EMAIL.MAX_TOTAL_SIZE_BYTES / 1024 / 1024;
 
   // ---------------------------------------------------------------------------
   // Render: estado de carregamento inicial
@@ -229,7 +233,7 @@ export default function NotificationFormPage() {
       <header className={styles.header}>
         <button
           className={styles.backButton}
-          onClick={() => navigate(ROUTES.DASHBOARD)}
+          onClick={() => navigate('/')}
           aria-label="Voltar ao Dashboard"
         >
           <ArrowLeft size={18} />
@@ -425,7 +429,7 @@ export default function NotificationFormPage() {
               <h2 className={styles.cardTitle}>Template</h2>
               {selectedTemplate && (
                 <Badge
-                  label={UI.CHANNEL_LABELS[selectedTemplate.channel] ?? selectedTemplate.channel}
+                  label={UI.CHANNEL_LABEL[selectedTemplate.channel] ?? selectedTemplate.channel}
                   variant={channelBadgeVariant(selectedTemplate.channel)}
                 />
               )}
@@ -566,8 +570,8 @@ export default function NotificationFormPage() {
                     <span className={styles.dropzoneLink}>clique para selecionar</span>
                   </p>
                   <p className={styles.dropzoneHint}>
-                    Formatos: {EMAIL.ALLOWED_EXTENSIONS.join(', ')} · Limite:{' '}
-                    {EMAIL.MAX_SIZE_MB} MB total
+                    Formatos: {EMAIL.ALLOWED_ATTACHMENT_TYPES.join(', ')} · Limite:{' '}
+                    {maxSizeMB} MB total
                   </p>
                 </div>
 
@@ -576,7 +580,7 @@ export default function NotificationFormPage() {
                   type="file"
                   multiple
                   className={styles.hiddenFileInput}
-                  accept={EMAIL.ALLOWED_EXTENSIONS.join(',')}
+                  accept={EMAIL.ALLOWED_ATTACHMENT_TYPES.join(',')}
                   onChange={(e) => handleFileSelect(e.target.files)}
                   aria-hidden="true"
                   tabIndex={-1}
@@ -586,13 +590,13 @@ export default function NotificationFormPage() {
                 <div
                   className={styles.storageBar}
                   aria-live="polite"
-                  aria-label={`Uso de espaço: ${formatBytes(totalAttachmentSize)} de ${EMAIL.MAX_SIZE_MB} MB`}
+                  aria-label={`Uso de espaço: ${formatBytes(totalAttachmentSize)} de ${maxSizeMB} MB`}
                 >
                   <div className={styles.storageBarLabels}>
                     <span className={attachmentOverLimit ? styles.storageLabelError : ''}>
                       {formatBytes(totalAttachmentSize)}
                     </span>
-                    <span className={styles.storageLabelLimit}>{EMAIL.MAX_SIZE_MB} MB</span>
+                    <span className={styles.storageLabelLimit}>{maxSizeMB} MB</span>
                   </div>
                   <div className={styles.storageTrack}>
                     <div
@@ -609,7 +613,7 @@ export default function NotificationFormPage() {
                   {attachmentOverLimit && (
                     <p className={styles.storageErrorMsg}>
                       <AlertCircle size={13} />
-                      Total de anexos excede o limite de {EMAIL.MAX_SIZE_MB} MB.
+                      Total de anexos excede o limite de {maxSizeMB} MB.
                     </p>
                   )}
                   {attachmentNearLimit && (
@@ -656,7 +660,7 @@ export default function NotificationFormPage() {
       <footer className={styles.footer}>
         <Button
           variant="ghost"
-          onClick={() => navigate(ROUTES.DASHBOARD)}
+          onClick={() => navigate('/')}
           disabled={isSending}
           type="button"
         >
@@ -696,7 +700,7 @@ export default function NotificationFormPage() {
             </Button>
             <Button
               variant="primary"
-              onClick={() => navigate(ROUTES.DASHBOARD)}
+              onClick={() => navigate('/')}
               type="button"
             >
               Ver Dashboard

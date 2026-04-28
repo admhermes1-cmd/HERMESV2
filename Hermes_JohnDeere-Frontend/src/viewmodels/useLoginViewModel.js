@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../core/auth/useAuth';
-import { ROUTES } from '../core/constants/appConstants';
+import { authService } from '../services/authService';
 
 /**
  * ViewModel para a tela de Login.
+ *
+ * ATENÇÃO — rota de fallback pós-login:
+ *   ROUTES.DASHBOARD está definido como '/dashboard', mas o AppRouter mapeia o
+ *   dashboard na rota raiz '/'. Usar ROUTES.DASHBOARD aqui causaria um 404.
+ *   O fallback correto é '/' (HOME), que o AppRouter resolve para DashboardPage.
  *
  * @param {Function} navigate - Função de navegação do React Router (useNavigate)
  *
@@ -29,7 +34,7 @@ export function useLoginViewModel(navigate) {
   const [error, setError] = useState(null);
 
   /**
-   * Atualiza um campo do formulário e limpa qualquer erro exibido.
+   * Atualiza um campo do formulário e limpa o erro exibido.
    * @param {'email' | 'password'} field
    * @param {string} value
    */
@@ -40,8 +45,12 @@ export function useLoginViewModel(navigate) {
 
   /**
    * Submete o formulário de login.
-   * Em sucesso: persiste o usuário via useAuth e navega para a rota de origem ou dashboard.
-   * Em falha: expõe a mensagem de erro para a View.
+   *
+   * O PrivateRoute injeta um objeto Location completo em `state.from` ao
+   * interceptar uma rota protegida. Por isso extraímos `.pathname` antes de
+   * navegar — passar um objeto Location para navigate() pode causar
+   * comportamento inesperado em algumas versões do React Router v6.
+   *
    * @param {React.FormEvent} e
    */
   async function handleSubmit(e) {
@@ -50,13 +59,22 @@ export function useLoginViewModel(navigate) {
     setIsLoading(true);
 
     try {
-      await login(form.email.trim(), form.password);
+      const { user, token, refreshToken } = await authService.login({
+        email: form.email.trim(),
+        password: form.password,
+      });
 
-      // Redireciona para a rota original interceptada pelo guard, ou para o dashboard
-      const destination = location.state?.from ?? ROUTES.DASHBOARD;
+      login({ user, token, refreshToken });
+
+      // state.from é um objeto Location — extraímos apenas pathname
+      const from = location.state?.from;
+      const destination =
+        typeof from === 'string'
+          ? from
+          : from?.pathname ?? '/'; // fallback: '/', NÃO ROUTES.DASHBOARD ('/dashboard' não existe no AppRouter)
+
       navigate(destination, { replace: true });
     } catch (err) {
-      // Loga detalhes técnicos no console para diagnóstico
       if (err?.details) {
         console.error('[useLoginViewModel] Detalhes do erro:', err.details);
       }
@@ -67,10 +85,7 @@ export function useLoginViewModel(navigate) {
   }
 
   return {
-    form,
-      isLoading,
-        error,
-          handleChange,
-            handleSubmit,
-            };
+    state: { form, isLoading, error },
+    actions: { handleChange, handleSubmit },
+  };
 }
