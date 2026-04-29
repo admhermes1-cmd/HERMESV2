@@ -184,7 +184,7 @@ const router = createBrowserRouter([
           {
             /** Dashboard — rota raiz da área autenticada. */
             path: '/',
-            element: <DashboardPage />,
+             element: <Navigate to="/dashboard" replace />,
           },
           {
             /** Listagem de todos os templates de notificação. */
