@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../core/auth/useAuth';
-import { authService } from '../services/authService';
 
 /**
  * ViewModel para a tela de Login.
@@ -59,13 +58,9 @@ export function useLoginViewModel(navigate) {
     setIsLoading(true);
 
     try {
-      const { user, token, refreshToken } = await authService.login({
-        email: form.email.trim(),
-        password: form.password,
-      });
-
-      // Persiste autenticação no contexto global
-      login({ user, token, refreshToken });
+      // Delega autenticação ao contexto — login(email, password) chama a API
+      // e persiste usuário + token internamente. Erros são capturados abaixo.
+      await login(form.email.trim(), form.password);
 
       // state.from é um objeto Location injetado pelo PrivateRoute — extrair .pathname
       const from = location.state?.from;
