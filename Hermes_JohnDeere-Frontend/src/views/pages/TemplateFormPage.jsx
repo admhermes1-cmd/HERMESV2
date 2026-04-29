@@ -16,7 +16,7 @@
  *  - `useAuth` (core/auth) — dados do usuário autenticado.
  *  - Componentes comuns: Button, InputField, Modal, Badge, LoadingSpinner.
  *  - Componente de template: TemplateVersionSelector.
- *  - Constantes: ROUTES, TEMPLATE, UI (appConstants).
+ *  - Constantes: ROUTES, UI (appConstants).
  *  - Ícones: lucide-react.
  *
  * @security O painel de Preview usa `dangerouslySetInnerHTML` para renderizar o body HTML
@@ -136,8 +136,12 @@ export default function TemplateFormPage() {
 
   // ── Derivados ─────────────────────────────────────────────────────────────
 
-  const channelBadgeVariant = UI.BADGE_VARIANTS?.[form.channel] ?? 'info';
-  const channelLabel = UI.CHANNEL_LABELS?.[form.channel]
+  // Mapeamento inline de canal → variante de Badge (UI.BADGE_VARIANTS não existe em appConstants)
+  const CHANNEL_BADGE_MAP = { EMAIL: 'info', SMS: 'warning', WHATSAPP: 'success' };
+  const channelBadgeVariant = CHANNEL_BADGE_MAP[form.channel] ?? 'info';
+
+  // UI.CHANNEL_LABEL (sem S) é o nome correto em appConstants
+  const channelLabel = UI.CHANNEL_LABEL?.[form.channel]
     ?? CHANNEL_OPTIONS.find(o => o.value === form.channel)?.label
     ?? form.channel;
 

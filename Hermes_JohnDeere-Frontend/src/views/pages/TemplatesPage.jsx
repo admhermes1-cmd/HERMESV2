@@ -14,7 +14,7 @@
  * - useNavigate — navegação programática (react-router-dom)
  * - Table, Badge, Button, Modal, LoadingSpinner — componentes comuns
  * - formatDate, formatChannel — utilitários de formatação
- * - appConstants (ROUTES, PAGINATION, UI) — constantes da aplicação
+ * - appConstants (ROUTES, PAGINATION, UI, buildRoute) — constantes da aplicação
  * - lucide-react — ícones
  */
 
@@ -34,7 +34,7 @@ import {
 
 import { useTemplateListViewModel } from '../../viewmodels/useTemplateListViewModel';
 import { useAuth } from '../../core/auth/useAuth';
-import { ROUTES, PAGINATION, UI } from '../../core/constants/appConstants';
+import { ROUTES, PAGINATION, UI, buildRoute } from '../../core/constants/appConstants';
 import { TemplateChannel } from '../../models/Template';
 
 import Table from '../components/common/Table';
@@ -130,7 +130,7 @@ export default function TemplatesPage() {
       header: 'Canal',
       render: (row) => (
         <Badge
-          label={UI.CHANNEL_LABELS[row.channel] ?? row.channel}
+          label={UI.CHANNEL_LABEL[row.channel] ?? row.channel}
           variant={CHANNEL_BADGE_VARIANT[row.channel] ?? 'neutral'}
         />
       ),
@@ -160,7 +160,7 @@ export default function TemplatesPage() {
               <span className={styles.actionsCell}>
                 <button
                   className={`${styles.iconBtn} ${styles.iconBtnEdit}`}
-                  onClick={() => navigate(ROUTES.TEMPLATE_EDIT(row.id))}
+                  onClick={() => navigate(buildRoute.templateEdit(row.id))}
                   aria-label={`Editar template ${row.name}`}
                   title="Editar"
                 >
@@ -304,7 +304,7 @@ export default function TemplatesPage() {
             }}
             aria-label="Itens por página"
           >
-            {PAGINATION.LIMIT_OPTIONS.map((opt) => (
+            {PAGINATION.PAGE_SIZE_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
                 {opt}
               </option>
