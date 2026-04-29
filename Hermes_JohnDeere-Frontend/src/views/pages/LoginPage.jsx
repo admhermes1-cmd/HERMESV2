@@ -4,7 +4,6 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 import { useLoginViewModel } from '../../viewmodels/useLoginViewModel';
 import Button from '../components/common/Button';
-import InputField from '../components/common/InputField';
 
 import styles from './LoginPage.module.css';
 
@@ -20,10 +19,15 @@ import styles from './LoginPage.module.css';
  * da tela dividida. O `AppRouter` e o `PrivateRoute` garantem que usuários já
  * autenticados nunca cheguem aqui.
  *
+ * @note Os campos de e-mail e senha são renderizados com `<input>` nativo (não via
+ * InputField) para que o layout "ícone + input + toggle" seja montado como flexbox,
+ * garantindo centralização vertical perfeita dos ícones independente da altura real
+ * do elemento. O componente InputField encapsula seu <input> internamente, o que
+ * impossibilita injetar ícones como siblings no mesmo contexto flex.
+ *
  * @dependencies
  * - `useLoginViewModel` — fornece estado do formulário, loading, erro e handlers
  * - `Button` — botão de submit com suporte a estado de loading
- * - `InputField` — campo de formulário com suporte a erro inline
  * - `lucide-react` — ícones Mail, Lock, Eye, EyeOff, AlertCircle
  *
  * @state_local
@@ -31,20 +35,19 @@ import styles from './LoginPage.module.css';
  *
  * @accessibility
  * - Foco automático no campo de e-mail ao montar o componente
- * - Banner de erro global com `role="alert"` para leitores de tela
- * - Botão de toggle de senha com `aria-label` descritivo
- * - Labels associados a todos os campos via componente InputField
+ * - Banner de erro global com `role="alert"` e `aria-live="assertive"`
+ * - Botão de toggle de senha com `aria-label` dinâmico
+ * - Labels explicitamente associados via `htmlFor` / `id`
  */
 export default function LoginPage() {
   const navigate = useNavigate();
   const { form, isLoading, error, handleChange, handleSubmit } = useLoginViewModel(navigate);
 
-  // Único estado local: controle de visibilidade da senha
+  // Único estado local: visibilidade da senha
   const [showPassword, setShowPassword] = useState(false);
 
-  // Ref para foco automático no primeiro campo ao montar
+  // Foco automático no e-mail ao montar
   const emailInputRef = useRef(null);
-
   useEffect(() => {
     emailInputRef.current?.focus();
   }, []);
@@ -54,6 +57,7 @@ export default function LoginPage() {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
+
         {/* ── Cabeçalho ─────────────────────────────────────────────── */}
         <header className={styles.header}>
           <div className={styles.logoMark} aria-hidden="true">
@@ -78,46 +82,62 @@ export default function LoginPage() {
           noValidate
           aria-label="Formulário de login"
         >
-          {/* Campo de e-mail */}
-          <div className={styles.fieldWrapper}>
-            <span className={styles.fieldIcon} aria-hidden="true">
-              <Mail size={17} />
-            </span>
-            <InputField
-              label="E-mail"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              placeholder="seu@email.com"
-              required
-              ref={emailInputRef}
-            />
+
+          {/* Campo de e-mail ──────────────────────────────────────── */}
+          <div className={styles.fieldGroup}>
+            <label htmlFor="email" className={styles.label}>
+              E-mail <span className={styles.required} aria-hidden="true">*</span>
+            </label>
+            <div className={styles.inputRow}>
+              <span className={styles.inputIcon} aria-hidden="true">
+                <Mail size={17} />
+              </span>
+              <input
+                ref={emailInputRef}
+                id="email"
+                name="email"
+                type="email"
+                className={styles.input}
+                value={form.email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                placeholder="seu@email.com"
+                required
+                autoComplete="email"
+                aria-required="true"
+              />
+            </div>
           </div>
 
-          {/* Campo de senha com toggle de visibilidade */}
-          <div className={styles.fieldWrapper}>
-            <span className={styles.fieldIcon} aria-hidden="true">
-              <Lock size={17} />
-            </span>
-            <InputField
-              label="Senha"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              value={form.password}
-              onChange={(e) => handleChange('password', e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-            <button
-              type="button"
-              className={styles.passwordToggle}
-              onClick={togglePasswordVisibility}
-              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-              tabIndex={0}
-            >
-              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-            </button>
+          {/* Campo de senha ───────────────────────────────────────── */}
+          <div className={styles.fieldGroup}>
+            <label htmlFor="password" className={styles.label}>
+              Senha <span className={styles.required} aria-hidden="true">*</span>
+            </label>
+            <div className={styles.inputRow}>
+              <span className={styles.inputIcon} aria-hidden="true">
+                <Lock size={17} />
+              </span>
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                className={styles.input}
+                value={form.password}
+                onChange={(e) => handleChange('password', e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+                aria-required="true"
+              />
+              <button
+                type="button"
+                className={styles.passwordToggle}
+                onClick={togglePasswordVisibility}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
           </div>
 
           {/* Botão de submit */}
@@ -135,6 +155,7 @@ export default function LoginPage() {
         <footer className={styles.footer}>
           <p className={styles.footerText}>Acesso restrito a usuários autorizados</p>
         </footer>
+
       </div>
     </div>
   );

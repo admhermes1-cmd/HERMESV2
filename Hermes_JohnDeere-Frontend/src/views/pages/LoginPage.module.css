@@ -2,11 +2,17 @@
    LoginPage.module.css
    Estilos escopados para a página de login do HERMES.
    Todas as medidas usam as variáveis CSS globais de `global.css`.
+
+   ESTRATÉGIA DE ÍCONES:
+   Os ícones (Mail, Lock, Eye/EyeOff) são siblings do <input> dentro
+   de `.inputRow`, que é um flexbox com `align-items: center`. Isso
+   garante centralização vertical perfeita sem nenhum cálculo de
+   posição absoluta — o próprio algoritmo flex distribui os itens.
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Container ──────────────────────────────────────────────────
-   Ocupa toda a altura do painel direito entregue pelo AuthLayout
-   e centraliza o card vertical e horizontalmente.
+   Ocupa toda a altura do painel direito do AuthLayout e centraliza
+   o card vertical e horizontalmente.
    ─────────────────────────────────────────────────────────────── */
 .container {
   display: flex;
@@ -124,7 +130,7 @@
 }
 
 /* ── Formulário ──────────────────────────────────────────────────
-   Coluna com espaçamento uniforme entre campos e botão.
+   Coluna com espaçamento uniforme entre grupos de campo e botão.
    ─────────────────────────────────────────────────────────────── */
 .form {
   display: flex;
@@ -132,57 +138,107 @@
   gap: var(--spacing-md);
 }
 
-/* ── Wrapper de campo com ícone ──────────────────────────────────
-   Posicionamento relativo para ancorar os ícones absolutos.
-   O InputField já lida com seu próprio label/error interno;
-   este wrapper apenas injeta os ícones decorativos e o toggle.
+/* ── Grupo de campo (label + inputRow) ───────────────────────────
+   Empilha verticalmente o label acima do inputRow.
    ─────────────────────────────────────────────────────────────── */
-.fieldWrapper {
-  position: relative;
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-/* Ícone prefixado (Mail, Lock) — posicionado dentro do input */
-.fieldIcon {
-  position: absolute;
-  /* Ajuste vertical: alinha com o centro do input, descontando a altura do label.
-     O InputField renderiza um <label> de ~20px + gap de 4px antes do <input>. */
-  top: calc(20px + 4px + 50%);
-  transform: translateY(-50%);
-  left: 12px;
-  color: var(--color-text-secondary);
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+.required {
+  color: var(--color-error);
+  margin-left: 2px;
+}
+
+/* ── inputRow ────────────────────────────────────────────────────
+   NÚCLEO DO LAYOUT: flexbox horizontal com align-items: center.
+   Garante que ícone, input e toggle fiquem alinhados ao centro
+   vertical do elemento mais alto (o <input>), sem nenhum cálculo.
+
+   Estrutura:  [ .inputIcon ] [ .input (flex: 1) ] [ .passwordToggle? ]
+   ─────────────────────────────────────────────────────────────── */
+.inputRow {
   display: flex;
   align-items: center;
+  gap: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* overflow hidden garante que o input não "vaze" o border-radius */
+  overflow: hidden;
+}
+
+/* Foco: quando qualquer filho do inputRow recebe foco,
+   realçamos a borda do container inteiro. */
+.inputRow:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.12);
+}
+
+/* ── Ícone prefixado (Mail, Lock) ────────────────────────────────
+   Flexbox item: width fixo, centralizado pelo `align-items: center`
+   do pai. Nenhum posicionamento absoluto necessário.
+   ─────────────────────────────────────────────────────────────── */
+.inputIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  color: var(--color-text-secondary);
+  /* pointer-events none para não interceptar cliques */
   pointer-events: none;
-  z-index: 1;
 }
 
-/*
-  Para que o ícone não sobreponha o texto, o InputField precisa de padding-left
-  no seu <input>. Como o InputField é um componente externo com seus próprios estilos,
-  usamos o seletor de descendente para sobrescrever o padding apenas dentro do wrapper.
-  Se o InputField usa uma classe própria para o <input>, ajuste o seletor abaixo
-  conforme a implementação real do componente.
-*/
-.fieldWrapper input {
-  padding-left: 38px !important;
+/* ── Input nativo ────────────────────────────────────────────────
+   flex: 1 para ocupar todo o espaço horizontal disponível.
+   Sem borda própria — a borda pertence ao .inputRow.
+   ─────────────────────────────────────────────────────────────── */
+.input {
+  flex: 1;
+  min-width: 0; /* evita overflow em containers estreitos */
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 10px var(--spacing-sm) 10px 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  font-family: inherit;
 }
 
-/* Toggle de visibilidade da senha — botão sufixado */
+.input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+/* ── Toggle de visibilidade da senha ─────────────────────────────
+   Último item do flexbox. Centralizado pelo `align-items: center`
+   do .inputRow, sem nenhum posicionamento absoluto.
+   ─────────────────────────────────────────────────────────────── */
 .passwordToggle {
-  position: absolute;
-  top: calc(20px + 4px + 50%);
-  transform: translateY(-50%);
-  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 100%;
   background: transparent;
   border: none;
-  padding: 0;
   cursor: pointer;
   color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
-  line-height: 1;
   transition: color 0.15s ease;
-  z-index: 1;
+  padding: 0;
 }
 
 .passwordToggle:hover {
@@ -191,13 +247,7 @@
 
 .passwordToggle:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: var(--border-radius-sm);
-}
-
-/* Garante que o texto de senha não sobreponha o botão de toggle */
-.fieldWrapper:has(.passwordToggle) input {
-  padding-right: 42px !important;
+  outline-offset: -2px;
 }
 
 /* ── Rodapé ──────────────────────────────────────────────────────
