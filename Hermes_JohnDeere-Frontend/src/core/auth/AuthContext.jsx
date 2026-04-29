@@ -279,6 +279,8 @@ export function AuthProvider({ children }) {
         err?.message ||
         'Falha ao realizar login. Verifique suas credenciais.';
       setError(message);
+      // Re-throw so callers (e.g. useLoginViewModel) can handle the error themselves
+      throw err;
     } finally {
       setIsLoading(false);
     }
