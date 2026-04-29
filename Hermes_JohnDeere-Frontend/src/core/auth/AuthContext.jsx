@@ -267,7 +267,6 @@ export function AuthProvider({ children }) {
    */
   const login = useCallback(async (email, password) => {
     setError(null);
-    setIsLoading(true);
     try {
       const { user: userData, token: newToken } = await authService.login({ email, password });
       _storeToken(newToken);
@@ -281,8 +280,6 @@ export function AuthProvider({ children }) {
       setError(message);
       // Re-throw so callers (e.g. useLoginViewModel) can handle the error themselves
       throw err;
-    } finally {
-      setIsLoading(false);
     }
   }, [_storeToken, _scheduleRefresh]);
 
