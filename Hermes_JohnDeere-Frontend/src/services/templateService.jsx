@@ -32,7 +32,7 @@ const listTemplates = ({ page, limit, channel, signal } = {}) => {
   if (limit   !== undefined) params.limit   = limit
   if (channel !== undefined) params.channel = channel
 
-  return apiClient.get(ENDPOINTS.TEMPLATES.BASE, { params, signal })
+  return apiClient.get(ENDPOINTS.TEMPLATES.LIST, { params, signal })
 }
 
 /**
@@ -53,7 +53,7 @@ const getTemplate = (id) =>
  * @throws {AppError}
  */
 const createTemplate = (templateData) =>
-  apiClient.post(ENDPOINTS.TEMPLATES.BASE, templateData)
+  apiClient.post(ENDPOINTS.TEMPLATES.CREATE, templateData)
 
 /**
  * Atualiza um template existente.
