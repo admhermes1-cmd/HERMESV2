@@ -233,7 +233,7 @@ export default function NotificationFormPage() {
       <header className={styles.header}>
         <button
           className={styles.backButton}
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           aria-label="Voltar ao Dashboard"
         >
           <ArrowLeft size={18} />
