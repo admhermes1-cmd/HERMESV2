@@ -67,7 +67,7 @@ export function useLoginViewModel(navigate) {
       const destination =
         typeof from === 'string'
           ? from
-          : from?.pathname ?? '/dashboard'; // '/dashboard' = DashboardPage no AppRouter
+          : from?.pathname ?? '/'; // '/' = DashboardPage no AppRouter
 
       navigate(destination, { replace: true });
     } catch (err) {

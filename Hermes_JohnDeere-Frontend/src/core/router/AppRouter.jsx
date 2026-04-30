@@ -183,7 +183,7 @@ const router = createBrowserRouter([
         children: [
           {
             /** Dashboard — rota raiz da área autenticada. */
-            path: '/',
+            path: '/dashboard',
              element: <DashboardPage />,
           },
           {
