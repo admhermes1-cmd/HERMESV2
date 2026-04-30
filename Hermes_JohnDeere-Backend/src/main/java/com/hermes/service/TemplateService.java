@@ -112,17 +112,19 @@ public class TemplateService {
                 .createdBy(createdBy)
                 .build();
 
-        TemplateVersion firstVersion = TemplateVersion.builder()
-                .template(template)
-                .versionNumber(1)
-                .subject(request.getVersion().getSubject())
-                .body(request.getVersion().getBody())
-                .variables(request.getVersion().getVariables())
-                .isActive(true)
-                .createdAt(LocalDateTime.now())
-                .build();
+        if (request.getVersion() != null) {
+            TemplateVersion firstVersion = TemplateVersion.builder()
+                    .template(template)
+                    .versionNumber(1)
+                    .subject(request.getVersion().getSubject())
+                    .body(request.getVersion().getBody())
+                    .variables(request.getVersion().getVariables())
+                    .isActive(true)
+                    .createdAt(LocalDateTime.now())
+                    .build();
 
-        template.getVersions().add(firstVersion);
+            template.getVersions().add(firstVersion);
+        }
 
         Template saved = templateRepository.save(template);
 

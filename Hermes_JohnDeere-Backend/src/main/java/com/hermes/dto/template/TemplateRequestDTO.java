@@ -59,8 +59,8 @@ public class TemplateRequestDTO {
     /**
      * Primeira versão do template a ser criada junto com o template.
      *
-     * <p>Obrigatório na criação.</p>
+     * <p>Opcional: permite criar um template sem versão inicial e adicionar
+     * versões posteriormente.</p>
      */
-    @NotNull(message = "Versão é obrigatória")
     private TemplateVersionRequestDTO version;
 }
