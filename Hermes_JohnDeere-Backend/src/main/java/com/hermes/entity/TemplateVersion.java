@@ -1,8 +1,9 @@
 package com.hermes.entity;
 
-import com.hermes.entity.converter.StringListConverter;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -99,9 +100,9 @@ public class TemplateVersion {
      * Exemplo: {@code body = "Olá {{nome}}, sua senha é {{senha}}"} →
      * {@code variables = ["nome", "senha"]}.
      *
-     * <p>Persistida como JSON array via {@link StringListConverter}.</p>
+     * <p>Persistida como JSON array em {@code jsonb}.</p>
      */
-    @Convert(converter = StringListConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     @Builder.Default
     private List<String> variables = new ArrayList<>();

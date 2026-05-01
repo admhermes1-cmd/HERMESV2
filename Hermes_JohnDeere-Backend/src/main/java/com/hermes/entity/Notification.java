@@ -4,10 +4,9 @@ import com.hermes.entity.enums.NotificationChannel;
 import com.hermes.entity.enums.NotificationStatus;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.hermes.entity.converter.AttachmentListConverter;
-import com.hermes.entity.converter.MapConverter;
-import com.hermes.entity.converter.RecipientsConverter;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -118,7 +117,7 @@ public class Notification {
      *
      * <p>Para SMS e WhatsApp, somente {@code to} é considerado.</p>
      */
-    @Convert(converter = RecipientsConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     private RecipientsData recipients;
 
@@ -130,7 +129,7 @@ public class Notification {
      * Exemplo: {@code {"nome": "João", "empresa": "ACME"}}.
      * Persistido como JSON via {@link MapConverter}.
      */
-    @Convert(converter = MapConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     @Builder.Default
     private Map<String, String> variables = new HashMap<>();
@@ -142,7 +141,7 @@ public class Notification {
      * <strong>Apenas nome e tamanho são armazenados</strong> — o binário não é persistido.
      * Persistido como JSON via {@link AttachmentListConverter}.
      */
-    @Convert(converter = AttachmentListConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     @Builder.Default
     private List<AttachmentMetadata> attachments = new ArrayList<>();
