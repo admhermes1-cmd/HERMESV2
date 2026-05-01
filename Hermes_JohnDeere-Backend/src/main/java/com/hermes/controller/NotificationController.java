@@ -3,8 +3,10 @@ package com.hermes.controller;
 import com.hermes.dto.notification.NotificationRequestDTO;
 import com.hermes.dto.notification.NotificationResponseDTO;
 import com.hermes.dto.PageResponseDTO;
+import com.hermes.entity.User;
 import com.hermes.entity.enums.NotificationChannel;
 import com.hermes.entity.enums.NotificationStatus;
+import com.hermes.exception.AppException;
 import com.hermes.security.JwtUtil;
 import com.hermes.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -137,7 +139,7 @@ public class NotificationController {
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        UUID createdBy = jwtUtil.extractUserId(auth.getCredentials().toString());
+        UUID createdBy = getAuthenticatedUserId(auth);
 
         log.info("Criando notificação pelo usuário: {} | canal: {} | agendada: {}",
                 createdBy, request.getChannel(), request.getScheduledAt() != null);
@@ -199,5 +201,23 @@ public class NotificationController {
 
         NotificationResponseDTO retried = notificationService.retryNotification(id);
         return ResponseEntity.ok(retried);
+    }
+
+    private UUID getAuthenticatedUserId(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null) {
+            throw AppException.unauthorized(AppException.ErrorCode.AUTH_INVALID_CREDENTIALS,
+                    "Usuário não autenticado");
+        }
+
+        if (auth.getPrincipal() instanceof User user) {
+            return user.getId();
+        }
+
+        if (auth.getCredentials() != null) {
+            return jwtUtil.extractUserId(auth.getCredentials().toString());
+        }
+
+        throw AppException.unauthorized(AppException.ErrorCode.AUTH_INVALID_CREDENTIALS,
+                "Não foi possível extrair o usuário autenticado.");
     }
 }

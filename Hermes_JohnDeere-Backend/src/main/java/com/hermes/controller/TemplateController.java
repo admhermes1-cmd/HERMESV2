@@ -5,7 +5,9 @@ import com.hermes.dto.template.TemplateResponseDTO;
 import com.hermes.dto.template.TemplateVersionRequestDTO;
 import com.hermes.dto.template.TemplateVersionResponseDTO;
 import com.hermes.dto.PageResponseDTO;
+import com.hermes.entity.User;
 import com.hermes.entity.enums.TemplateChannel;
+import com.hermes.exception.AppException;
 import com.hermes.security.JwtUtil;
 import com.hermes.service.TemplateService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -117,7 +119,7 @@ public class TemplateController {
             @RequestBody @Valid TemplateRequestDTO request) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        UUID createdBy = jwtUtil.extractUserId(extractBearerToken(auth));
+        UUID createdBy = getAuthenticatedUserId(auth);
 
         log.info("Criando template '{}' pelo usuário: {}", request.getName(), createdBy);
 
@@ -260,7 +262,21 @@ public class TemplateController {
      * @param auth objeto de autenticação do SecurityContext
      * @return string do token JWT
      */
-    private String extractBearerToken(Authentication auth) {
-        return auth.getCredentials().toString();
+    private UUID getAuthenticatedUserId(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null) {
+            throw AppException.unauthorized(AppException.ErrorCode.AUTH_INVALID_CREDENTIALS,
+                    "Usuário não autenticado");
+        }
+
+        if (auth.getPrincipal() instanceof User user) {
+            return user.getId();
+        }
+
+        if (auth.getCredentials() != null) {
+            return jwtUtil.extractUserId(auth.getCredentials().toString());
+        }
+
+        throw AppException.unauthorized(AppException.ErrorCode.AUTH_INVALID_CREDENTIALS,
+                "Não foi possível extrair o usuário autenticado.");
     }
 }
