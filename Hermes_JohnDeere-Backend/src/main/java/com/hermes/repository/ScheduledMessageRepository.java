@@ -35,7 +35,8 @@ public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessa
      * @param now instante atual; deve ser {@code LocalDateTime.now()} calculado no serviço
      * @return lista de mensagens prontas para envio, ordenadas por horário agendado crescente
      */
-    @Query("SELECT sm FROM ScheduledMessage sm WHERE sm.status = 'PENDING' " +
+    @Query("SELECT sm FROM ScheduledMessage sm JOIN FETCH sm.notification " +
+           "WHERE sm.status = 'PENDING' " +
            "AND sm.scheduledAt <= :now " +
            "ORDER BY sm.scheduledAt ASC")
     List<ScheduledMessage> findPendingReadyToSend(@Param("now") LocalDateTime now);
@@ -56,7 +57,8 @@ public interface ScheduledMessageRepository extends JpaRepository<ScheduledMessa
      * @param now         instante atual para comparar com {@code nextAttemptAt}
      * @return lista de mensagens elegíveis para nova tentativa de envio
      */
-    @Query("SELECT sm FROM ScheduledMessage sm WHERE sm.status = 'FAILED' " +
+    @Query("SELECT sm FROM ScheduledMessage sm JOIN FETCH sm.notification " +
+           "WHERE sm.status = 'FAILED' " +
            "AND sm.attempts < :maxAttempts " +
            "AND (sm.nextAttemptAt IS NULL OR sm.nextAttemptAt <= :now)")
     List<ScheduledMessage> findRetryable(

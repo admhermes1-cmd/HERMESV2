@@ -63,7 +63,7 @@ public class ScheduledMessage {
      * Relacionamento {@code @OneToOne}: cada notificação tem no máximo um agendamento.
      * Carregado de forma lazy para evitar joins desnecessários.
      */
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "notification_id", nullable = false, unique = true, updatable = false)
     private Notification notification;
 
