@@ -329,8 +329,8 @@ export function useNotificationFormViewModel() {
       scheduledAt: form.isImmediate ? null : form.scheduledAt || null,
     });
 
-    if (modelError) {
-      setError(modelError);
+    if (!modelError.valid) {
+      setError(modelError.errors.join('\n'));
       return false;
     }
 
@@ -339,6 +339,7 @@ export function useNotificationFormViewModel() {
     try {
       await notificationService.sendNotification(
         {
+          channel: selectedTemplate?.channel,
           templateId: form.templateId,
           templateVersionId: form.templateVersionId,
           recipients: form.recipients,

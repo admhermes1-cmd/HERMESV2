@@ -167,7 +167,7 @@ export function useTemplateFormViewModel() {
     setError(null);
 
     try {
-      const payload = { subject: version.subject, body: version.body };
+      const payload = { subject: version.subject, body: version.body, variables: extractVariables(version.body) };
       let saved;
 
       if (version.isDraft) {

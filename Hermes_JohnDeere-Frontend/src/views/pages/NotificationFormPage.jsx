@@ -197,13 +197,21 @@ export default function NotificationFormPage() {
 
   const isEmailChannel = selectedTemplate?.channel === NotificationChannel.EMAIL;
 
-  const minDateTime = new Date(
-    Date.now() + NOTIFICATION.MIN_SCHEDULE_OFFSET_MINUTES * 60000
-  ).toISOString();
+  const minDateTime = (() => {
+    const d = new Date(Date.now() + NOTIFICATION.MIN_SCHEDULE_OFFSET_MINUTES * 60000);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  })();
 
   const submitLabel = form.isImmediate ? 'Enviar Notificação' : 'Agendar Notificação';
   const submitIcon = form.isImmediate ? Send : Clock;
   const SubmitIcon = submitIcon;
+
+  const canSubmit = Boolean(
+    !isSending &&
+    form.templateId &&
+    form.templateVersionId
+  );
 
   // Tamanho máximo em MB para exibição legível na UI
   const maxSizeMB = EMAIL.MAX_TOTAL_SIZE_BYTES / 1024 / 1024;
@@ -481,7 +489,7 @@ export default function NotificationFormPage() {
                     >
                       {availableVersions.map((v) => (
                         <option key={v.id} value={v.id}>
-                          {v.name ?? `v${v.version}`}{' '}
+                          {v.name ?? `v${v.versionNumber}`}{' '}
                           {v.isDraft ? '(rascunho)' : ''}
                         </option>
                       ))}
@@ -671,7 +679,7 @@ export default function NotificationFormPage() {
           variant="primary"
           onClick={onSubmit}
           isLoading={isSending}
-          disabled={isSending}
+          disabled={!canSubmit}
           type="button"
         >
           <SubmitIcon size={16} />

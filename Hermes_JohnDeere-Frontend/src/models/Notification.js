@@ -190,20 +190,6 @@ export function validateNotification(notification) {
     errors.push('templateId: campo obrigatório.');
   }
 
-  // channel
-  if (!Object.values(NotificationChannel).includes(notification.channel)) {
-    errors.push(
-      `channel: valor "${notification.channel}" inválido. Use: ${Object.values(NotificationChannel).join(' | ')}.`
-    );
-  }
-
-  // status
-  if (!Object.values(NotificationStatus).includes(notification.status)) {
-    errors.push(
-      `status: valor "${notification.status}" inválido. Use: ${Object.values(NotificationStatus).join(' | ')}.`
-    );
-  }
-
   // recipients — validação de e-mail somente para canal EMAIL
   if (notification.channel === NotificationChannel.EMAIL) {
     const { to = [], cc = [], bcc = [] } = notification.recipients ?? {};
@@ -228,11 +214,6 @@ export function validateNotification(notification) {
         `attachments: tamanho total (${totalMB} MB) excede o limite de 10 MB.`
       );
     }
-  }
-
-  // createdBy
-  if (!notification.createdBy || notification.createdBy.trim() === '') {
-    errors.push('createdBy: campo obrigatório.');
   }
 
   // scheduledAt — deve ser uma data futura, se fornecida

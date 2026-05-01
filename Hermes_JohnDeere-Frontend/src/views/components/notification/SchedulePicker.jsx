@@ -16,11 +16,13 @@ import styles from './SchedulePicker.module.css';
 const toLocalInput = (iso) => (iso ? iso.slice(0, 16) : '');
 
 /**
- * Converte datetime-local → ISO 8601.
+ * Converte datetime-local → string ISO sem timezone.
+ * O backend usa LocalDateTime (sem fuso), então não convertemos para UTC.
+ * datetime-local retorna "YYYY-MM-DDTHH:mm"; adicionamos ":00" para os segundos.
  * @param {string} local
  * @returns {string|null}
  */
-const toISO = (local) => (local ? new Date(local).toISOString() : null);
+const toISO = (local) => (local ? `${local}:00` : null);
 
 /**
  * Formata ISO 8601 em string legível para o usuário em pt-BR.
