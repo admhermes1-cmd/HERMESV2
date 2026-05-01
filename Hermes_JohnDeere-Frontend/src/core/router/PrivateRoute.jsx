@@ -27,7 +27,7 @@ import LoadingSpinner from '../../views/components/common/LoadingSpinner.jsx';
 const LOGIN_PATH = '/login';
 
 /** Rota de fallback para usuários sem permissão de role. */
-const HOME_PATH = '/';
+const HOME_PATH = '/dashboard';
 
 // ---------------------------------------------------------------------------
 // Componente

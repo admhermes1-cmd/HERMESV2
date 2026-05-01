@@ -182,9 +182,18 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           {
+            /** Redireciona raiz para o dashboard. */
+            index: true,
+            element: <Navigate to="/dashboard" replace />,
+          },
+          {
+            path: '/',
+            element: <Navigate to="/dashboard" replace />,
+          },
+          {
             /** Dashboard — rota raiz da área autenticada. */
             path: '/dashboard',
-             element: <DashboardPage />,
+            element: <DashboardPage />,
           },
           {
             /** Listagem de todos os templates de notificação. */
