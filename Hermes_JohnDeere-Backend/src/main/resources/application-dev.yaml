@@ -36,19 +36,19 @@ spring:
         # Habilita estatísticas de query — útil para detectar N+1
         generate_statistics: false
 
-  # ── E-mail — usar MailHog ou Mailtrap em dev para não enviar e-mails reais ──
+  # ── E-mail — Gmail SMTP (mesmo config de produção) ──
   mail:
-    host: ${MAIL_HOST:localhost}
-    port: ${MAIL_PORT:1025}         # porta padrão do MailHog
-    username: ${MAIL_USERNAME:dev@hermes.local}
-    password: ${MAIL_PASSWORD:dev}
+    host: smtp.gmail.com
+    port: 587
+    username: admhermes1@gmail.com
+    password: wixpeycnoesjjucd
     properties:
       mail:
         smtp:
-          auth: false               # MailHog não requer autenticação
+          auth: true
           starttls:
-            enable: false           # MailHog não usa TLS
-            required: false
+            enable: true
+            required: true
 
 # ── Configurações proprietárias do HERMES ───────────────────
 hermes:
@@ -60,10 +60,10 @@ hermes:
     expiration: ${JWT_EXPIRATION:86400000}           # 24h em dev (evita login frequente)
     refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
-  # E-mail — remetente de desenvolvimento
+  # E-mail — remetente
   mail:
-    from: ${MAIL_FROM:dev@hermes.local}
-    from-name: ${MAIL_FROM_NAME:HERMES Dev}
+    from: admhermes1@gmail.com
+    from-name: ${MAIL_FROM_NAME:HERMES Notificações}
     max-size-bytes: 10485760
 
   # Admin — senha em texto puro apenas para dev.

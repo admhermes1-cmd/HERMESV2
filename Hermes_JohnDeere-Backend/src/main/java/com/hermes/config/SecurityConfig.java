@@ -64,7 +64,7 @@ public class SecurityConfig {
      * Suporta múltiplos valores separados por vírgula.
      * Exemplo: {@code http://localhost:5173,https://hermes.empresa.com}
      */
-    @Value("${cors.allowed-origins}")
+    @Value("${hermes.cors.allowed-origins}")
     private String allowedOrigins;
 
     /**
