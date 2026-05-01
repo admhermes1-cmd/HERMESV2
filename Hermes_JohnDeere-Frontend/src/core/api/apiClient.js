@@ -206,6 +206,7 @@ const isAuthRoute = (url = '') =>
 const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: DEFAULT_TIMEOUT,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -228,6 +229,11 @@ apiClient.interceptors.request.use(
     const token = getAccessToken()
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
+    }
+    // Axios v1.x converte FormData para JSON quando Content-Type é application/json.
+    // Removendo o header aqui, o browser define multipart/form-data com boundary correto.
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
     }
     return config
   },

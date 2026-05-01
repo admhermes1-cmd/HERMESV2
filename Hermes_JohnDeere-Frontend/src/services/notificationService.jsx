@@ -34,7 +34,7 @@ const listNotifications = ({ page, limit, status, channel, signal } = {}) => {
   if (status  !== undefined) params.status  = status
   if (channel !== undefined) params.channel = channel
 
-  return apiClient.get(ENDPOINTS.NOTIFICATIONS.BASE, { params, signal })
+  return apiClient.get(ENDPOINTS.NOTIFICATIONS.LIST, { params, signal })
 }
 
 /**
@@ -65,22 +65,22 @@ const getNotification = (id) =>
  * @throws {AppError}
  */
 const sendNotification = (notificationData, attachments = []) => {
-  if (attachments.length === 0) {
-    return apiClient.post(ENDPOINTS.NOTIFICATIONS.BASE, notificationData)
-  }
-
   const formData = new FormData()
 
-  // Serializa o payload principal como campo JSON dentro do FormData
-  formData.append('data', JSON.stringify(notificationData))
+  // O backend exige multipart/form-data com o campo "request" contendo o JSON
+  // (@RequestPart("request") no NotificationController)
+  formData.append(
+    'request',
+    new Blob([JSON.stringify(notificationData)], { type: 'application/json' })
+  )
 
-  attachments.forEach((file) => {
-    formData.append('attachments', file, file.name)
-  })
+  if (attachments && attachments.length > 0) {
+    attachments.forEach((file) => {
+      formData.append('attachments', file, file.name)
+    })
+  }
 
-  return apiClient.post(ENDPOINTS.NOTIFICATIONS.BASE, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  return apiClient.post(ENDPOINTS.NOTIFICATIONS.SEND, formData)
 }
 
 /**
