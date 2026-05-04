@@ -700,7 +700,7 @@ export default function NotificationFormPage() {
               variant="ghost"
               onClick={() => {
                 setShowSuccessModal(false);
-                window.location.reload();
+                setForm(initialState); // limpa o formulário corretamente
               }}
               type="button"
             >
