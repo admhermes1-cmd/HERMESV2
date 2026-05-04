@@ -17,3 +17,4 @@ If you are developing a production application, we recommend using TypeScript wi
 
 
 COMMIT FEITO EXCLUSIVAMENTE PARA ATUALIZAR O DEPLOY DO VERCEL
+COMMIT PARA ATUALIZAR RAILWAY
