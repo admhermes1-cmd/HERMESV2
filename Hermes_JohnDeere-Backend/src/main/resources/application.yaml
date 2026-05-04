@@ -66,12 +66,9 @@ spring:
 
   # ── E-mail (Gmail SMTP com TLS) ───────────────────────────
   mail:
-    host: smtp.gmail.com
-    port: 587
-    # MAIL_USERNAME: endereço Gmail (ex: noreply@empresa.com)
+    host: ${MAIL_HOST:smtp.sendgrid.net}
+    port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME}
-    # MAIL_PASSWORD: App Password gerada em myaccount.google.com/apppasswords
-    # NÃO é a senha da conta Google — ative autenticação de 2 fatores primeiro.
     password: ${MAIL_PASSWORD}
     properties:
       mail:
