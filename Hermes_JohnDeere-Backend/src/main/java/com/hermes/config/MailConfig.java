@@ -8,19 +8,11 @@ import org.springframework.context.annotation.Configuration;
  *
  * <p>Centraliza as propriedades customizadas do HERMES — remetente, nome de exibição
  * e limite de tamanho de anexos — expondo-as para injeção nos services que enviam
- * e-mail. O {@link org.springframework.mail.javamail.JavaMailSender} é auto-configurado
- * pelo Spring Boot via {@code spring.mail.*} e injetado diretamente no
- * {@code EmailService}, sem necessidade de re-exposição aqui.</p>
+ * e-mail.</p>
  *
- * <p><b>Configuração SMTP (application.yml):</b></p>
- * <pre>
- * spring:
- *   mail:
- *     host: smtp.gmail.com
- *     port: 587
- *     username: ${MAIL_USERNAME}
- *     password: ${MAIL_PASSWORD}
- * </pre>
+ * <p>A implementação anterior usava {@code JavaMailSender} (SMTP). A implementação
+ * atual usa a SendGrid HTTP API diretamente, eliminando a dependência de portas SMTP
+ * bloqueadas em provedores de cloud como Railway.</p>
  *
  * <p><b>Configuração HERMES (application.yml):</b></p>
  * <pre>
@@ -34,63 +26,37 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MailConfig {
 
-    /**
-     * Endereço de e-mail do remetente.
-     * Configurável via variável de ambiente {@code MAIL_FROM}.
-     * Valor padrão: {@code noreply@hermes.com}
-     */
     @Value("${hermes.mail.from}")
     private String mailFrom;
 
-    /**
-     * Nome de exibição do remetente (aparece no campo "De:" do e-mail).
-     * Configurável via variável de ambiente {@code MAIL_FROM_NAME}.
-     * Valor padrão: {@code HERMES Notificações}
-     */
     @Value("${hermes.mail.from-name}")
     private String mailFromName;
 
-    /**
-     * Tamanho máximo de anexos em bytes.
-     * Configurável via propriedade {@code hermes.mail.max-size-bytes}.
-     * Valor padrão: {@code 10485760} (10 MB).
-     *
-     * <p>O {@code EmailService} deve rejeitar anexos maiores que este limite
-     * antes de tentar o envio, retornando erro de validação ao chamador.</p>
-     */
     @Value("${hermes.mail.max-size-bytes}")
     private long maxSizeBytes;
 
     /**
      * Retorna o endereço de e-mail do remetente.
+     * Usado pelo {@code EmailService} para preencher o objeto {@link com.sendgrid.helpers.mail.objects.Email}.
      *
-     * <p>Utilizado pelo {@code EmailService} para preencher o campo {@code From}
-     * dos e-mails enviados pelo HERMES.</p>
-     *
-     * @return endereço de e-mail do remetente (ex: {@code noreply@hermes.com})
+     * @return endereço de e-mail (ex: {@code noreply@hermes.com})
      */
-    public String getMailFrom() {
+    public String getFrom() {
         return mailFrom;
     }
 
     /**
      * Retorna o nome de exibição do remetente.
-     *
-     * <p>Combinado com {@link #getMailFrom()} pelo método {@link #getFormattedSender()}
-     * para montar o header {@code From} no formato RFC 5322.</p>
+     * Combinado com {@link #getFrom()} pelo {@code EmailService} para compor o campo From.
      *
      * @return nome de exibição (ex: {@code HERMES Notificações})
      */
-    public String getMailFromName() {
+    public String getFromName() {
         return mailFromName;
     }
 
     /**
      * Retorna o tamanho máximo de anexos em bytes.
-     *
-     * <p>O {@code EmailService} deve validar o tamanho de cada anexo antes do envio.
-     * Se o total de anexos exceder este limite, a notificação deve ser rejeitada
-     * com erro de validação ({@code 400 Bad Request}).</p>
      *
      * @return tamanho máximo em bytes (padrão: 10.485.760 = 10 MB)
      */
@@ -100,19 +66,9 @@ public class MailConfig {
 
     /**
      * Formata o remetente no padrão RFC 5322: {@code "Nome <email>"}.
+     * Mantido para compatibilidade com outros pontos do código que possam usá-lo.
      *
-     * <p>Este formato é reconhecido por todos os clientes de e-mail modernos
-     * e exibe o nome amigável no campo "De:" em vez do endereço bruto.</p>
-     *
-     * <p><b>Exemplo de saída:</b> {@code HERMES Notificações <noreply@hermes.com>}</p>
-     *
-     * <p><b>Uso no EmailService:</b></p>
-     * <pre>
-     * MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-     * helper.setFrom(mailConfig.getFormattedSender());
-     * </pre>
-     *
-     * @return string no formato {@code "Nome <email>"} pronta para uso como header From
+     * @return string no formato {@code "Nome <email>"}
      */
     public String getFormattedSender() {
         return String.format("%s <%s>", mailFromName, mailFrom);
