@@ -97,6 +97,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
+        <!-- Tentativa de corrigir o erro de envio trocando o método de envio para SendGrid -->
+        <dependency>
+            <groupId>com.sendgrid</groupId>
+            <artifactId>sendgrid-java</artifactId>
+            <version>4.10.2</version>
+        </dependency>
 
         <!-- ── Documentação OpenAPI / Swagger UI ────────────────────── -->
         <dependency>
