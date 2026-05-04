@@ -35,7 +35,7 @@
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: var(--shadow-sm);
   transition: var(--sidebar-transition);
   z-index: 100;
@@ -266,7 +266,7 @@
   box-shadow: var(--shadow-sm);
   transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
   padding: 0;
-  z-index: 1;
+  /* z-index: 110; -> Testando se o botão precisa de Z-index alto*/
 }
 
 .collapseBtn:hover {
