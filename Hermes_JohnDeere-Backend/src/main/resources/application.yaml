@@ -77,9 +77,9 @@ spring:
           starttls:
             enable: true
             required: true          # rejeita conexão sem TLS
-          connectiontimeout: 5000   # 5s para estabelecer conexão TCP
-          timeout: 5000             # 5s para leitura de resposta SMTP
-          writetimeout: 5000        # 5s para envio de dados
+          connectiontimeout: 15000  # 15s para estabelecer conexão TCP
+          timeout: 15000            # 15s para leitura de resposta SMTP
+          writetimeout: 15000       # 15s para envio de dados
 
   # ── Jackson ───────────────────────────────────────────────
   jackson:
