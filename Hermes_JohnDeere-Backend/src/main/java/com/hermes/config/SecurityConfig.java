@@ -117,6 +117,8 @@ public class SecurityConfig {
                     "/swagger-ui.html"
                 ).permitAll()
 
+                .requestMatchers("/users/**").hasRole("ADMIN")
+
                 // ─── Endpoints autenticados — apenas leitura de templates ──────────
                 // Templates podem ser consultados por qualquer usuário autenticado,
                 // mas apenas ADMINs podem criar, editar ou excluir.
