@@ -26,6 +26,42 @@ import org.springframework.http.HttpStatus;
 @Getter
 public class AppException extends RuntimeException {
 
+ /**
+ * Cria uma exceção indicando que o usuário solicitado não foi encontrado.
+ *
+ * @return {@link AppException} com código {@code USER_NOT_FOUND} (404).
+ */
+public static AppException userNotFound() {
+    return new AppException(ErrorCode.USER_NOT_FOUND);
+}
+ 
+/**
+ * Cria uma exceção indicando que o e-mail já está em uso por outro usuário.
+ *
+ * @return {@link AppException} com código {@code USER_EMAIL_DUPLICATE} (409).
+ */
+public static AppException userEmailDuplicate() {
+    return new AppException(ErrorCode.USER_EMAIL_DUPLICATE);
+}
+ 
+/**
+ * Cria uma exceção indicando tentativa de alteração do e-mail após criação.
+ *
+ * @return {@link AppException} com código {@code USER_EMAIL_IMMUTABLE} (400).
+ */
+public static AppException userEmailImmutable() {
+    return new AppException(ErrorCode.USER_EMAIL_IMMUTABLE);
+}
+ 
+/**
+ * Cria uma exceção indicando que o admin tentou excluir a própria conta.
+ *
+ * @return {@link AppException} com código {@code USER_CANNOT_DELETE_SELF} (409).
+ */
+public static AppException userCannotDeleteSelf() {
+    return new AppException(ErrorCode.USER_CANNOT_DELETE_SELF);
+}
+
     /** Status HTTP que será usado na resposta ao cliente. */
     private final HttpStatus httpStatus;
 
@@ -256,6 +292,15 @@ public class AppException extends RuntimeException {
         INTERNAL_SERVER_ERROR,
 
         /** O recurso solicitado não existe ou a rota não foi encontrada. */
-        RESOURCE_NOT_FOUND
+        RESOURCE_NOT_FOUND,
+        
+        // ------------------------------------------------------------------
+        // Criação / Edição de Usuários
+        // ------------------------------------------------------------------
+        USER_NOT_FOUND(404, "Usuário não encontrado"),
+        USER_EMAIL_DUPLICATE(409, "Já existe um usuário com este e-mail"),
+        USER_EMAIL_IMMUTABLE(400, "O e-mail não pode ser alterado após a criação"),
+        USER_CANNOT_DELETE_SELF(409, "Você não pode excluir sua própria conta"),
+        USER_SEND_EMAIL_FAILED(500, "Falha ao enviar e-mail de boas-vindas");
     }
 }
