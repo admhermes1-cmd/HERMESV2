@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { userService }      from '../services/userService';
-import { APP_CONSTANTS }    from '../core/constants/appConstants';
-import { validateUserForm } from '../utils/Validators';
+import { ROUTES }           from '../core/constants/appConstants';
+import { validateUserForm } from '../core/utils/validators';
 
 /**
  * @typedef {Object} UserFormFields
@@ -76,7 +76,7 @@ export function useUserFormViewModel() {
       })
       .catch(err => {
         if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
-          setSubmitError(err.message ?? APP_CONSTANTS.MESSAGES.GENERIC_ERROR);
+          setSubmitError(err.message ?? 'Ocorreu um erro inesperado.');
         }
       })
       .finally(() => setIsLoading(false));
@@ -139,9 +139,9 @@ export function useUserFormViewModel() {
         await userService.createUser(payload);
       }
 
-      navigate(APP_CONSTANTS.ROUTES.USERS);
+      navigate(ROUTES.USERS);
     } catch (err) {
-      setSubmitError(err.message ?? APP_CONSTANTS.MESSAGES.GENERIC_ERROR);
+      setSubmitError(err.message ?? 'Ocorreu um erro inesperado.');
     } finally {
       setIsSubmitting(false);
     }

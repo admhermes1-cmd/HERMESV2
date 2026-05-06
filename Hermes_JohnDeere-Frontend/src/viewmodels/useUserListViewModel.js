@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { userService }    from '../services/userService';
-import { APP_CONSTANTS }  from '../core/constants/appConstants';
+import { userService } from '../services/userService';
+import { ROUTES, PAGINATION } from '../core/constants/appConstants';
 
 /**
  * @typedef {Object} UserListState
@@ -73,7 +73,7 @@ export function useUserListViewModel() {
     try {
       const params = {
         page:  currentPage,
-        limit: APP_CONSTANTS.PAGINATION.DEFAULT_LIMIT,
+        limit: PAGINATION.DEFAULT_PAGE_SIZE,
       };
       if (roleFilter)   params.role     = roleFilter;
       if (activeFilter !== '') params.isActive = activeFilter;
@@ -84,7 +84,7 @@ export function useUserListViewModel() {
       setTotalItems(data.totalElements);
     } catch (err) {
       if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
-        setError(err.message ?? APP_CONSTANTS.MESSAGES.GENERIC_ERROR);
+        setError(err.message ?? 'Ocorreu um erro inesperado.');
       }
     } finally {
       setIsLoading(false);
@@ -150,7 +150,7 @@ export function useUserListViewModel() {
       setDeleteTarget(null);
       await fetchUsers();
     } catch (err) {
-      setError(err.message ?? APP_CONSTANTS.MESSAGES.GENERIC_ERROR);
+      setError(err.message ?? 'Ocorreu um erro inesperado.');
       setDeleteTarget(null);
     } finally {
       setIsDeleting(false);
@@ -177,7 +177,7 @@ export function useUserListViewModel() {
       await userService.resetPassword(resetTarget);
       setResetTarget(null);
     } catch (err) {
-      setError(err.message ?? APP_CONSTANTS.MESSAGES.GENERIC_ERROR);
+      setError(err.message ?? 'Ocorreu um erro inesperado.');
       setResetTarget(null);
     } finally {
       setIsResetting(false);
