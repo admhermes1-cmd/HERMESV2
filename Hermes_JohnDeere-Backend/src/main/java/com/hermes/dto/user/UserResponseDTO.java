@@ -1,6 +1,6 @@
 package com.hermes.dto.user;
 
-import com.hermes.model.User;
+import com.hermes.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

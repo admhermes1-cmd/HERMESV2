@@ -102,44 +102,65 @@ public class EmailService {
      */
 
     /**
-     * Envia o e-mail de boas-vindas com as credenciais de acesso ao HERMES.
+     * Envia o e-mail de boas-vindas com as credenciais de acesso ao HERMES via SendGrid.
      *
-     * <p>É disparado tanto na criação do usuário quanto na redefinição de senha.
-     * O corpo do e-mail é formatado em texto simples (plain-text) para máxima
-     * compatibilidade com clientes de e-mail corporativos.</p>
+     * <p>É disparado tanto na criação do usuário quanto na redefinição de senha.</p>
      *
      * @param to          endereço de e-mail do destinatário.
      * @param name        nome completo do usuário para personalização.
      * @param rawPassword senha em texto puro recém-gerada.
-     * @throws MessagingException se ocorrer falha no transporte SMTP.
      */
-    public void sendWelcomeEmail(String to, String name, String rawPassword) throws MessagingException {
+    public void sendWelcomeEmail(String to, String name, String rawPassword) {
         String subject = "Seu acesso ao HERMES foi criado";
-     
+
         String body = """
                 Olá, %s!
-     
+
                 Seu acesso ao sistema HERMES foi criado com sucesso.
-     
+
                 E-mail: %s
                 Senha temporária: %s
-     
+
                 Recomendamos que você solicite a alteração da sua senha ao administrador após o primeiro acesso.
-     
+
                 Atenciosamente,
                 Equipe HERMES
                 """.formatted(name, to, rawPassword);
-     
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromAddress);   // injete via @Value("${hermes.mail.from}")
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
-     
-        mailSender.send(message);
-        log.info("E-mail de boas-vindas enviado para: {}", to);
+
+        try {
+            Email from = new Email(mailConfig.getFrom(), mailConfig.getFromName());
+            Email recipient = new Email(to);
+            Content content = new Content("text/plain", body);
+            Mail mail = new Mail(from, subject, recipient, content);
+
+            SendGrid sg = new SendGrid(sendGridApiKey);
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint(SENDGRID_MAIL_ENDPOINT);
+            request.setBody(mail.build());
+
+            Response response = sg.api(request);
+
+            if (response.getStatusCode() != SENDGRID_SUCCESS_STATUS) {
+                log.error("SendGrid retornou status {} ao enviar e-mail de boas-vindas para {}: {}",
+                        response.getStatusCode(), to, response.getBody());
+                throw AppException.internal(ErrorCode.USER_SEND_EMAIL_FAILED,
+                        "Falha ao enviar e-mail de boas-vindas (status " + response.getStatusCode() + ")",
+                        response.getBody());
+            }
+
+            log.info("E-mail de boas-vindas enviado para: {}", to);
+
+        } catch (AppException ex) {
+            throw ex;
+        } catch (IOException ex) {
+            log.error("Falha ao enviar e-mail de boas-vindas para {}: {}", to, ex.getMessage(), ex);
+            throw AppException.internal(ErrorCode.USER_SEND_EMAIL_FAILED,
+                    "Falha ao enviar e-mail de boas-vindas via SendGrid", ex.getMessage());
+        }
     }
- 
+
+
     public void sendEmail(Notification notification, TemplateVersion version,
                           List<MultipartFile> attachments) {
         log.debug("Compondo e-mail para notificação: {}", notification.getId());

@@ -6,9 +6,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import com.hermes.model.UserRole;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -68,14 +65,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     Page<User> findByRoleAndIsActiveTrue(UserRole role, Pageable pageable);
 
-     /**
-     * Verifica se existe um usuário cadastrado com o e-mail informado.
-     *
-     * @param email endereço de e-mail a verificar.
-     * @return {@code true} se houver registro com o e-mail.
-     */
-    boolean existsByEmail(String email);
-     
     /**
      * Retorna página de usuários filtrada por papel e situação da conta.
      *
