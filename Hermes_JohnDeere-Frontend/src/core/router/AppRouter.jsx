@@ -46,7 +46,7 @@ import MainLayout from '../../views/layouts/MainLayout.jsx';
 import AuthLayout from '../../views/layouts/AuthLayout.jsx';
 import UsersPage    from '../../views/pages/UsersPage';
 import UserFormPage from '../../views/pages/UserFormPage';
-import { ROUTES } from '../core/constants/appConstants';
+import { ROUTES } from '../constants/appConstants';
 
 // ---------------------------------------------------------------------------
 // Importações lazy das páginas
