@@ -10,7 +10,7 @@
  *  - Enums de domínio (UserRole, NotificationStatus, etc.) vivem nos models/
  *  - Labels de UI centralizados aqui para facilitar migração futura para i18n
  *
- * @module core/constants/appConstants
+ * @module core/constants/appConstant
  * @version 1.0.0
  */
 
@@ -183,6 +183,9 @@ export const ROUTES = Object.freeze({
   TEMPLATE_NEW: '/templates/new',
   TEMPLATE_EDIT: '/templates/:id/edit',
   NOTIFICATION_NEW: '/notifications/new',
+  USERS:     '/users',
+  USER_NEW:  '/users/new',
+  USER_EDIT: (id) => `/users/${id}/edit`,
 });
 
 /**
