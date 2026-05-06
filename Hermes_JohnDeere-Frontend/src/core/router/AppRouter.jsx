@@ -44,6 +44,8 @@ import PrivateRoute from './PrivateRoute.jsx';
 import LoadingSpinner from '../../views/components/common/LoadingSpinner.jsx';
 import MainLayout from '../../views/layouts/MainLayout.jsx';
 import AuthLayout from '../../views/layouts/AuthLayout.jsx';
+import UsersPage    from '../../views/pages/UsersPage';
+import UserFormPage from '../../views/pages/UserFormPage';
 
 // ---------------------------------------------------------------------------
 // Importações lazy das páginas
@@ -204,6 +206,18 @@ const router = createBrowserRouter([
             /** Formulário de criação/agendamento de nova notificação. */
             path: '/notifications/new',
             element: <NotificationFormPage />,
+          },
+          {
+          path:    APP_CONSTANTS.ROUTES.USERS,      // '/users'
+          element: <UsersPage />,
+          },
+          {
+          path:    APP_CONSTANTS.ROUTES.USER_NEW,   // '/users/new'
+          element: <UserFormPage />,
+          },
+          {
+          path:    '/users/:id/edit',
+          element: <UserFormPage />,
           },
         ],
       },
