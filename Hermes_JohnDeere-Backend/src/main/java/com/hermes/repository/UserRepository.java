@@ -6,6 +6,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.hermes.model.UserRole;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -64,4 +67,40 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return página de usuários ativos com o papel informado
      */
     Page<User> findByRoleAndIsActiveTrue(UserRole role, Pageable pageable);
+
+     /**
+     * Verifica se existe um usuário cadastrado com o e-mail informado.
+     *
+     * @param email endereço de e-mail a verificar.
+     * @return {@code true} se houver registro com o e-mail.
+     */
+    boolean existsByEmail(String email);
+     
+    /**
+     * Retorna página de usuários filtrada por papel e situação da conta.
+     *
+     * @param role     papel a filtrar.
+     * @param isActive situação da conta a filtrar.
+     * @param pageable configuração de paginação e ordenação.
+     * @return página de {@link User}.
+     */
+    Page<User> findByRoleAndIsActive(UserRole role, boolean isActive, Pageable pageable);
+     
+     /**
+     * Retorna página de usuários filtrada apenas por papel.
+     *
+     * @param role     papel a filtrar.
+     * @param pageable configuração de paginação e ordenação.
+     * @return página de {@link User}.
+     */
+    Page<User> findByRole(UserRole role, Pageable pageable);
+     
+     /**
+     * Retorna página de usuários filtrada apenas por situação da conta.
+     *
+     * @param isActive situação da conta a filtrar.
+     * @param pageable configuração de paginação e ordenação.
+     * @return página de {@link User}.
+     */
+    Page<User> findByIsActive(boolean isActive, Pageable pageable);
 }
