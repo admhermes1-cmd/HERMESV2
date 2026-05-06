@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useUserFormViewModel } from '../../viewmodels/useUserFormViewModel';
-import { Button }        from '../components/common/Button';
-import { InputField }    from '../components/common/InputField';
-import { LoadingSpinner} from '../components/common/LoadingSpinner';
-import { APP_CONSTANTS } from '../../core/constants/appConstants';
+import Button from '../components/common/Button';
+import InputField from '../components/common/InputField';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import { ROUTES } from '../../core/constants/appConstants';
 import styles from './UserFormPage.module.css';
 
 /**
