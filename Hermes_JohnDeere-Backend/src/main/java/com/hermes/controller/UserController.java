@@ -4,7 +4,7 @@ import com.hermes.dto.PageResponseDTO;
 import com.hermes.dto.user.UserListResponseDTO;
 import com.hermes.dto.user.UserRequestDTO;
 import com.hermes.dto.user.UserResponseDTO;
-import com.hermes.model.UserRole;
+import com.hermes.entity.enums.UserRole;
 import com.hermes.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -115,6 +115,18 @@ public static AppException userCannotDeleteSelf() {
         this(httpStatus, code, message, null);
     }
 
+    /**
+     * Construtor a partir de um {@link ErrorCode} com httpStatus e defaultMessage embutidos.
+     *
+     * @param code código semântico do enum {@link ErrorCode}
+     */
+    public AppException(ErrorCode code) {
+        this(HttpStatus.resolve(code.getHttpStatus()) != null
+                        ? HttpStatus.resolve(code.getHttpStatus())
+                        : HttpStatus.INTERNAL_SERVER_ERROR,
+                code, code.getDefaultMessage(), null);
+    }
+
     // -------------------------------------------------------------------------
     // Factory methods — reduzem verbosidade nos services
     // -------------------------------------------------------------------------
@@ -302,5 +314,21 @@ public static AppException userCannotDeleteSelf() {
         USER_EMAIL_IMMUTABLE(400, "O e-mail não pode ser alterado após a criação"),
         USER_CANNOT_DELETE_SELF(409, "Você não pode excluir sua própria conta"),
         USER_SEND_EMAIL_FAILED(500, "Falha ao enviar e-mail de boas-vindas");
+
+        private final int httpStatus;
+        private final String defaultMessage;
+
+        ErrorCode() {
+            this.httpStatus = 0;
+            this.defaultMessage = "";
+        }
+
+        ErrorCode(int httpStatus, String defaultMessage) {
+            this.httpStatus = httpStatus;
+            this.defaultMessage = defaultMessage;
+        }
+
+        public int getHttpStatus() { return httpStatus; }
+        public String getDefaultMessage() { return defaultMessage; }
     }
 }
