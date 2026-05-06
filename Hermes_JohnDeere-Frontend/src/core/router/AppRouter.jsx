@@ -209,11 +209,11 @@ const router = createBrowserRouter([
             element: <NotificationFormPage />,
           },
           {
-          path:    APP_CONSTANTS.ROUTES.USERS,      // '/users'
+          path:    ROUTES.USERS,
           element: <UsersPage />,
           },
           {
-          path:    APP_CONSTANTS.ROUTES.USER_NEW,   // '/users/new'
+          path:    ROUTES.USER_NEW,
           element: <UserFormPage />,
           },
           {
