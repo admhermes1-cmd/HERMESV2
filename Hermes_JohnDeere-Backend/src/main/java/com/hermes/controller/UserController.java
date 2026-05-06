@@ -67,7 +67,7 @@ public class UserController {
             @Parameter(description = "Filtro por situação da conta") @RequestParam(required = false) Boolean isActive
     ) {
         Page<UserListResponseDTO> result = userService.listUsers(page, limit, role, isActive);
-        return ResponseEntity.ok(PageResponseDTO.from(result));
+        return ResponseEntity.ok(PageResponseDTO.from(result, page + 1, limit));
     }
 
     // -------------------------------------------------------------------------
