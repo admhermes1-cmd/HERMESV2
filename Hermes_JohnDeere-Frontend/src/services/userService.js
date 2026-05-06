@@ -1,5 +1,5 @@
-import     apiClient     from '../core/api/apiClient';
-import { API_ENDPOINTS } from '../core/api/apiEndpoints';
+import apiClient          from '../core/api/apiClient';
+import { ENDPOINTS }     from '../core/api/apiEndpoints';
 
 /**
  * Extrai a mensagem de erro de uma resposta Axios,
@@ -37,8 +37,7 @@ export const userService = Object.freeze({
    */
   async listUsers(params = {}, signal) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.USERS.LIST, { params, signal });
-      return response.data;
+      return await apiClient.get(ENDPOINTS.USERS.LIST, { params, signal });
     } catch (err) {
       throw toServiceError(err);
     }
@@ -53,8 +52,7 @@ export const userService = Object.freeze({
    */
   async findById(id, signal) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.USERS.BY_ID(id), { signal });
-      return response.data;
+      return await apiClient.get(ENDPOINTS.USERS.BY_ID(id), { signal });
     } catch (err) {
       throw toServiceError(err);
     }
@@ -68,8 +66,7 @@ export const userService = Object.freeze({
    */
   async createUser(payload) {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.USERS.LIST, payload);
-      return response.data;
+      return await apiClient.post(ENDPOINTS.USERS.LIST, payload);
     } catch (err) {
       throw toServiceError(err);
     }
@@ -84,8 +81,7 @@ export const userService = Object.freeze({
    */
   async updateUser(id, payload) {
     try {
-      const response = await apiClient.put(API_ENDPOINTS.USERS.BY_ID(id), payload);
-      return response.data;
+      return await apiClient.put(ENDPOINTS.USERS.BY_ID(id), payload);
     } catch (err) {
       throw toServiceError(err);
     }
@@ -99,7 +95,7 @@ export const userService = Object.freeze({
    */
   async resetPassword(id) {
     try {
-      await apiClient.post(API_ENDPOINTS.USERS.RESET_PASSWORD(id));
+      await apiClient.post(ENDPOINTS.USERS.RESET_PASSWORD(id));
     } catch (err) {
       throw toServiceError(err);
     }
@@ -113,7 +109,7 @@ export const userService = Object.freeze({
    */
   async deleteUser(id) {
     try {
-      await apiClient.delete(API_ENDPOINTS.USERS.BY_ID(id));
+      await apiClient.delete(ENDPOINTS.USERS.BY_ID(id));
     } catch (err) {
       throw toServiceError(err);
     }
