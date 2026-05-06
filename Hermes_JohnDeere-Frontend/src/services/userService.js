@@ -1,13 +1,29 @@
-import { apiClient } from '../core/api/apiClient';
+import { apiClient }     from '../core/api/apiClient';
 import { API_ENDPOINTS } from '../core/api/apiEndpoints';
-import { AppError } from '../errors/AppError';
+
+/**
+ * Extrai a mensagem de erro de uma resposta Axios,
+ * com fallback para mensagem genérica.
+ *
+ * @param {unknown} err - Erro capturado no catch.
+ * @returns {Error} Erro normalizado com `message` e `status`.
+ */
+function toServiceError(err) {
+  const message =
+    err?.response?.data?.message ??
+    err?.message ??
+    'Ocorreu um erro inesperado.';
+  const error = new Error(message);
+  error.status = err?.response?.status ?? 0;
+  return error;
+}
 
 /**
  * Serviço de acesso à API para o módulo de usuários.
  *
  * <p>Toda a comunicação HTTP é feita via {@link apiClient}, que centraliza
  * autenticação, refresh de token e tratamento global de erros.
- * Os erros de negócio da API são normalizados em {@link AppError} antes de
+ * Os erros da API são normalizados por {@link toServiceError} antes de
  * serem propagados ao ViewModel.</p>
  */
 export const userService = Object.freeze({
@@ -17,30 +33,30 @@ export const userService = Object.freeze({
    *
    * @param {{ page?: number, limit?: number, role?: string, isActive?: string }} params
    * @param {AbortSignal} [signal] - Sinal para cancelamento da requisição.
-   * @returns {Promise<import('../../../types').PageResponse>}
+   * @returns {Promise<Object>} Página de usuários.
    */
   async listUsers(params = {}, signal) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.USERS.LIST, { params, signal });
       return response.data;
     } catch (err) {
-      throw AppError.fromAxiosError(err);
+      throw toServiceError(err);
     }
   },
 
   /**
    * Retorna os dados completos de um usuário pelo ID.
    *
-   * @param {string} id     - UUID do usuário.
-   * @param {AbortSignal} [signal]
-   * @returns {Promise<import('../../../types').UserResponse>}
+   * @param {string} id - UUID do usuário.
+   * @param {AbortSignal} [signal] - Sinal para cancelamento da requisição.
+   * @returns {Promise<Object>} Dados do usuário.
    */
   async findById(id, signal) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.USERS.BY_ID(id), { signal });
       return response.data;
     } catch (err) {
-      throw AppError.fromAxiosError(err);
+      throw toServiceError(err);
     }
   },
 
@@ -48,30 +64,30 @@ export const userService = Object.freeze({
    * Cria um novo usuário. A senha é gerada pelo backend e enviada por e-mail.
    *
    * @param {{ name: string, email: string, role: string, isActive?: boolean }} payload
-   * @returns {Promise<import('../../../types').UserResponse>}
+   * @returns {Promise<Object>} Dados do usuário criado.
    */
   async createUser(payload) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.USERS.LIST, payload);
       return response.data;
     } catch (err) {
-      throw AppError.fromAxiosError(err);
+      throw toServiceError(err);
     }
   },
 
   /**
    * Atualiza os dados de um usuário existente (name, role, isActive).
    *
-   * @param {string} id
+   * @param {string} id - UUID do usuário.
    * @param {{ name: string, role: string, isActive: boolean }} payload
-   * @returns {Promise<import('../../../types').UserResponse>}
+   * @returns {Promise<Object>} Dados do usuário atualizado.
    */
   async updateUser(id, payload) {
     try {
       const response = await apiClient.put(API_ENDPOINTS.USERS.BY_ID(id), payload);
       return response.data;
     } catch (err) {
-      throw AppError.fromAxiosError(err);
+      throw toServiceError(err);
     }
   },
 
@@ -85,7 +101,7 @@ export const userService = Object.freeze({
     try {
       await apiClient.post(API_ENDPOINTS.USERS.RESET_PASSWORD(id));
     } catch (err) {
-      throw AppError.fromAxiosError(err);
+      throw toServiceError(err);
     }
   },
 
@@ -99,7 +115,7 @@ export const userService = Object.freeze({
     try {
       await apiClient.delete(API_ENDPOINTS.USERS.BY_ID(id));
     } catch (err) {
-      throw AppError.fromAxiosError(err);
+      throw toServiceError(err);
     }
   },
 });
