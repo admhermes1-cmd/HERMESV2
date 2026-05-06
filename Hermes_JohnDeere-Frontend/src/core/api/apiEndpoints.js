@@ -253,6 +253,25 @@ const DASHBOARD = Object.freeze({
 })
 
 // ---------------------------------------------------------------------------
+// USERS
+// ---------------------------------------------------------------------------
+
+/**
+ * @namespace USERS
+ * @description Endpoints de gerenciamento de usuários.
+ */
+const USERS = Object.freeze({
+  /** Lista paginada: GET /users */
+  LIST: '/users',
+
+  /** Usuário por ID: GET|PUT|DELETE /users/:id */
+  BY_ID: (id) => `/users/${id}`,
+
+  /** Reset de senha: POST /users/:id/reset-password */
+  RESET_PASSWORD: (id) => `/users/${id}/reset-password`,
+})
+
+// ---------------------------------------------------------------------------
 // Exportação
 // ---------------------------------------------------------------------------
 
@@ -260,7 +279,7 @@ const DASHBOARD = Object.freeze({
  * Mapa centralizado de todos os endpoints da API HERMES.
  * Sempre importe daqui — nunca escreva URLs de endpoint diretamente nos services.
  *
- * @type {{ AUTH: typeof AUTH, TEMPLATES: typeof TEMPLATES, NOTIFICATIONS: typeof NOTIFICATIONS, DASHBOARD: typeof DASHBOARD }}
+ * @type {{ AUTH: typeof AUTH, TEMPLATES: typeof TEMPLATES, NOTIFICATIONS: typeof NOTIFICATIONS, DASHBOARD: typeof DASHBOARD, USERS: typeof USERS }}
  *
  * @example
  * import { ENDPOINTS } from '@/core/api/apiEndpoints'
@@ -274,4 +293,5 @@ export const ENDPOINTS = Object.freeze({
   TEMPLATES,
   NOTIFICATIONS,
   DASHBOARD,
+  USERS,
 })
