@@ -1,6 +1,6 @@
 package com.hermes.dto.user;
 
-import com.hermes.model.UserRole;
+import com.hermes.entity.enums.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
