@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { userService } from '../core/services/userService';
-import { APP_CONSTANTS } from '../core/constants/appConstants';
+import { userService }    from '../services/userService';
+import { APP_CONSTANTS }  from '../core/constants/appConstants';
 
 /**
  * @typedef {Object} UserListState

@@ -225,6 +225,40 @@ export function validateTemplateVariables(requiredVariables, variables) {
 }
 
 /**
+ * Valida os campos do formulário de usuário.
+ *
+ * <p>Em modo criação, o e-mail também é validado. Em modo edição,
+ * o campo de e-mail é ignorado (imutável).</p>
+ *
+ * @param {{ name: string, email: string, role: string }} fields  - Valores do formulário.
+ * @param {boolean}                                       isEdit  - {@code true} para modo edição.
+ * @returns {Object.<string, string>} Mapa de erros por campo; vazio se válido.
+ */
+export function validateUserForm(fields, isEdit = false) {
+  const errors = {};
+ 
+  if (!fields.name || fields.name.trim().length === 0) {
+    errors.name = 'O nome é obrigatório.';
+  } else if (fields.name.trim().length < 2) {
+    errors.name = 'O nome deve ter pelo menos 2 caracteres.';
+  }
+ 
+  if (!isEdit) {
+    if (!fields.email || fields.email.trim().length === 0) {
+      errors.email = 'O e-mail é obrigatório.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email.trim())) {
+      errors.email = 'Informe um endereço de e-mail válido.';
+    }
+  }
+ 
+  if (!fields.role) {
+    errors.role = 'O papel é obrigatório.';
+  }
+ 
+  return errors;
+}
+
+/**
  * Valida se uma data de agendamento é válida — deve ser futura e respeitar
  * o intervalo mínimo de antecedência em minutos.
  *

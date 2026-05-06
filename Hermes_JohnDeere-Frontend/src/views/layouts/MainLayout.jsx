@@ -10,6 +10,7 @@ import {
   Bell,
   Menu,
   X,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../../core/auth/useAuth';
 import styles from './MainLayout.module.css';
@@ -26,6 +27,8 @@ const ROUTE_TITLES = {
   '/templates': 'Templates',
   '/templates/new': 'Novo Template',
   '/notifications/new': 'Nova Notificação',
+  '/users': 'Usuários',
+  '/users/new': 'Novo Usuário',
 };
 
 /** Retorna o título da rota ativa mais específica. */
@@ -53,13 +56,6 @@ function getInitials(name = '') {
     .map((w) => w[0]?.toUpperCase() ?? '')
     .join('');
 }
-
-/* ── Itens de navegação ─────────────────────────────────── */
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
-  { to: '/templates', label: 'Templates', Icon: FileText },
-  { to: '/notifications/new', label: 'Nova Notificação', Icon: Send },
-];
 
 /* ─────────────────────────────────────────────────────────── */
 
@@ -126,6 +122,14 @@ export default function MainLayout() {
   }, [logout, navigate]);
 
   const initials = getInitials(user?.name);
+
+  /* ── Itens de navegação — calculados aqui para reagir ao papel do usuário ── */
+  const NAV_ITEMS = [
+    { to: '/dashboard',         label: 'Dashboard',       Icon: LayoutDashboard },
+    { to: '/templates',         label: 'Templates',        Icon: FileText },
+    { to: '/notifications/new', label: 'Nova Notificação', Icon: Send },
+    ...(isAdmin ? [{ to: '/users', label: 'Usuários', Icon: Users }] : []),
+  ];
 
   /* ── Render ──────────────────────────────────────────── */
   return (

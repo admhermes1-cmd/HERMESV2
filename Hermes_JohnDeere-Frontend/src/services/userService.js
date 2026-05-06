@@ -1,5 +1,5 @@
-import { apiClient } from '../api/apiClient';
-import { API_ENDPOINTS } from '../api/apiEndpoints';
+import { apiClient } from '../core/api/apiClient';
+import { API_ENDPOINTS } from '../core/api/apiEndpoints';
 import { AppError } from '../errors/AppError';
 
 /**

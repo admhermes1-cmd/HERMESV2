@@ -7,7 +7,7 @@ import { Table }         from '../components/common/Table';
 import { Modal }         from '../components/common/Modal';
 import { LoadingSpinner} from '../components/common/LoadingSpinner';
 import { APP_CONSTANTS } from '../../core/constants/appConstants';
-import { formatDate }    from '../../core/utils/formatters';
+import { formatDate }    from '../../utils/formatters';
 import styles from './UsersPage.module.css';
 
 /**

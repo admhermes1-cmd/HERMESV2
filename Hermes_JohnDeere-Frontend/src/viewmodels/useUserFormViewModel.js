@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { userService } from '../core/services/userService';
-import { APP_CONSTANTS } from '../core/constants/appConstants';
-import { validateUserForm } from '../core/utils/validators';
+import { userService }      from '../services/userService';
+import { APP_CONSTANTS }    from '../core/constants/appConstants';
+import { validateUserForm } from '../utils/validators';
 
 /**
  * @typedef {Object} UserFormFields
