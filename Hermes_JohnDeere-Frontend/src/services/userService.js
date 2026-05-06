@@ -1,4 +1,4 @@
-import { apiClient }     from '../core/api/apiClient';
+import     apiClient     from '../core/api/apiClient';
 import { API_ENDPOINTS } from '../core/api/apiEndpoints';
 
 /**
