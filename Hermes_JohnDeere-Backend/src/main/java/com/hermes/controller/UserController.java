@@ -66,8 +66,8 @@ public class UserController {
             @Parameter(description = "Filtro por papel (ADMIN | USER)") @RequestParam(required = false) UserRole role,
             @Parameter(description = "Filtro por situação da conta") @RequestParam(required = false) Boolean isActive
     ) {
-        Page<UserListResponseDTO> result = userService.listUsers(page, limit, role, isActive);
-        return ResponseEntity.ok(PageResponseDTO.from(result, page + 1, limit));
+        Page<UserListResponseDTO> result = userService.listUsers(Math.max(0, page - 1), limit, role, isActive);
+        return ResponseEntity.ok(PageResponseDTO.from(result, page, limit));
     }
 
     // -------------------------------------------------------------------------

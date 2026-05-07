@@ -99,7 +99,7 @@ export default function UsersPage() {
             icon={Pencil}
             iconOnly
             aria-label={`Editar ${row.name}`}
-            onClick={() => navigate(APP_CONSTANTS.ROUTES.USER_EDIT(row.id))}
+            onClick={() => navigate(ROUTES.USER_EDIT(row.id))}
           />
           <Button
             variant="ghost"
@@ -140,7 +140,7 @@ export default function UsersPage() {
         <Button
           variant="primary"
           icon={UserPlus}
-          onClick={() => navigate(APP_CONSTANTS.ROUTES.USER_NEW)}
+          onClick={() => navigate(ROUTES.USER_NEW)}
         >
           Novo usuário
         </Button>
