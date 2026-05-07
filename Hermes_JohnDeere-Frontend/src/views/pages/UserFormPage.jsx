@@ -48,7 +48,7 @@ export default function UserFormPage() {
           variant="ghost"
           size="sm"
           icon={ArrowLeft}
-          onClick={() => navigate(APP_CONSTANTS.ROUTES.USERS)}
+          onClick={() => navigate('/users')}
           aria-label="Voltar para listagem de usuários"
         >
           Usuários

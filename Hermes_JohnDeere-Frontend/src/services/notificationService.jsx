@@ -70,8 +70,8 @@ const sendNotification = (notificationData, attachments = []) => {
   // O backend exige multipart/form-data com o campo "request" contendo o JSON
   // (@RequestPart("request") no NotificationController)
   formData.append(
-    'request',
-    new Blob([JSON.stringify(notificationData)], { type: 'application/json' })
+  'request',
+  JSON.stringify(notificationData)
   )
 
   if (attachments && attachments.length > 0) {
