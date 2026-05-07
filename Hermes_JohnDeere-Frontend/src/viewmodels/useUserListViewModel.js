@@ -72,16 +72,16 @@ export function useUserListViewModel() {
 
     try {
       const params = {
-        page:  currentPage,
+        page:  currentPage + 1,
         limit: PAGINATION.DEFAULT_PAGE_SIZE,
       };
       if (roleFilter)   params.role     = roleFilter;
       if (activeFilter !== '') params.isActive = activeFilter;
 
       const data = await userService.listUsers(params, abortRef.current.signal);
-      setUsers(data.content);
-      setTotalPages(data.totalPages);
-      setTotalItems(data.totalElements);
+      setUsers(data.data ?? []);
+      setTotalItems(data.total ?? 0);
+      setTotalPages(Math.ceil((data.total ?? 0) / (data.limit || PAGINATION.DEFAULT_PAGE_SIZE)));
     } catch (err) {
       if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
         setError(err.message ?? 'Ocorreu um erro inesperado.');
