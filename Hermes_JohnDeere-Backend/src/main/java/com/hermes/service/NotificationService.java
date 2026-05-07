@@ -27,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -38,6 +40,11 @@ import java.util.regex.Pattern;
  * roteamento de envio (imediato ou agendado), cancelamento e retentativa.
  * É o ponto de orquestração entre os repositórios, o {@link EmailService}
  * e o mecanismo de agendamento via {@link ScheduledMessage}.
+ *
+ * <p><strong>Convenção de timezone:</strong> todos os {@link LocalDateTime} persistidos
+ * no banco de dados representam instantes em <strong>UTC</strong>. A conversão do fuso
+ * do cliente para UTC ocorre na fronteira deste serviço, via {@link OffsetDateTime},
+ * garantindo comparações corretas no scheduler independentemente do fuso do servidor.
  */
 @Slf4j
 @Service
@@ -56,6 +63,10 @@ public class NotificationService {
     private final TemplateRepository templateRepository;
     private final TemplateVersionRepository templateVersionRepository;
     private final EmailService emailService;
+
+    // =========================================================================
+    // Métodos públicos
+    // =========================================================================
 
     /**
      * Lista notificações paginadas com filtros opcionais de status e canal.
@@ -110,6 +121,9 @@ public class NotificationService {
      *       criação de {@link ScheduledMessage} caso contrário</li>
      * </ol>
      *
+     * <p>Quando {@code scheduledAt} é fornecido, ele é recebido como {@link OffsetDateTime}
+     * (o cliente declara seu fuso explicitamente) e convertido para UTC antes da persistência.
+     *
      * @param request     dados da notificação a criar
      * @param attachments arquivos a anexar ao envio; pode ser {@code null} ou vazia
      * @param createdBy   UUID do usuário que originou a requisição
@@ -136,29 +150,43 @@ public class NotificationService {
 
         TemplateVersion version = resolveTemplateVersion(request);
 
+        // ── Conversão de timezone na fronteira ───────────────────────────────
+        // scheduledAt chega como OffsetDateTime com o fuso do cliente declarado
+        // explicitamente (ex: "2026-05-07T15:00:00-03:00"). Convertemos para
+        // LocalDateTime UTC aqui, uma única vez, antes de qualquer persistência,
+        // para que todas as comparações no scheduler usem a mesma base temporal.
+        LocalDateTime scheduledAtUtc = request.getScheduledAt() != null
+                ? request.getScheduledAt().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime()
+                : null;
+
         // ── Criação da entidade ───────────────────────────────────────────────
         Notification notification = Notification.builder()
                 .channel(request.getChannel())
                 .status(NotificationStatus.PENDING)
                 .templateId(template.getId())
                 .templateVersionId(version.getId())
-                .recipients(new Notification.RecipientsData(request.getRecipients().to(), request.getRecipients().cc(), request.getRecipients().bcc()))
+                .recipients(new Notification.RecipientsData(
+                        request.getRecipients().to(),
+                        request.getRecipients().cc(),
+                        request.getRecipients().bcc()))
                 .variables(request.getVariables())
-                .attachments(request.getAttachments() != null ? request.getAttachments().stream()
-                        .map(a -> new Notification.AttachmentMetadata(a.name(), a.size()))
-                        .toList() : null)
-                .scheduledAt(request.getScheduledAt())
+                .attachments(request.getAttachments() != null
+                        ? request.getAttachments().stream()
+                                .map(a -> new Notification.AttachmentMetadata(a.name(), a.size()))
+                                .toList()
+                        : null)
+                .scheduledAt(scheduledAtUtc)   // sempre UTC ou null
                 .createdBy(createdBy)
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
 
         notification = notificationRepository.save(notification);
 
         // ── Roteamento ────────────────────────────────────────────────────────
-        if (request.getScheduledAt() == null) {
+        if (scheduledAtUtc == null) {
             notification = sendImmediately(notification, version, attachments);
         } else {
-            notification = scheduleForLater(notification, request.getScheduledAt());
+            notification = scheduleForLater(notification, scheduledAtUtc);
         }
 
         return NotificationResponseDTO.from(notification);
@@ -173,7 +201,7 @@ public class NotificationService {
      *
      * @param id UUID da notificação a cancelar
      * @return {@link NotificationResponseDTO} com o estado atualizado
-     * @throws AppException {@code NOTIFICATION_NOT_FOUND}    se a notificação não existir
+     * @throws AppException {@code NOTIFICATION_NOT_FOUND}     se a notificação não existir
      * @throws AppException {@code NOTIFICATION_CANNOT_CANCEL} se o status atual não permitir cancelamento
      */
     @Transactional
@@ -199,7 +227,8 @@ public class NotificationService {
         scheduledMessageRepository.findByNotificationId(id).ifPresent(scheduled -> {
             scheduled.setStatus(ScheduledMessageStatus.CANCELLED);
             scheduledMessageRepository.save(scheduled);
-            log.info("ScheduledMessage {} cancelado junto com a notificação {}", scheduled.getId(), id);
+            log.info("ScheduledMessage {} cancelado junto com a notificação {}",
+                    scheduled.getId(), id);
         });
 
         log.info("Notificação {} cancelada", id);
@@ -242,7 +271,7 @@ public class NotificationService {
         try {
             emailService.sendEmail(notification, version, List.of());
             notification.setStatus(NotificationStatus.SENT);
-            notification.setSentAt(LocalDateTime.now());
+            notification.setSentAt(LocalDateTime.now(ZoneOffset.UTC));
             notification.setError(null);
             log.info("Retentativa bem-sucedida para a notificação: {}", id);
         } catch (AppException ex) {
@@ -254,7 +283,9 @@ public class NotificationService {
         return NotificationResponseDTO.from(notification);
     }
 
-    // ── Métodos privados ──────────────────────────────────────────────────────
+    // =========================================================================
+    // Métodos privados
+    // =========================================================================
 
     /**
      * Realiza o envio imediato do e-mail e atualiza o status da notificação.
@@ -270,12 +301,13 @@ public class NotificationService {
             emailService.sendEmail(notification, version,
                     attachments != null ? attachments : List.of());
             notification.setStatus(NotificationStatus.SENT);
-            notification.setSentAt(LocalDateTime.now());
+            notification.setSentAt(LocalDateTime.now(ZoneOffset.UTC));
             log.info("Notificação {} enviada imediatamente", notification.getId());
         } catch (AppException ex) {
             notification.setStatus(NotificationStatus.FAILED);
             notification.setError(ex.getMessage());
-            log.warn("Falha no envio imediato da notificação {}: {}", notification.getId(), ex.getMessage());
+            log.warn("Falha no envio imediato da notificação {}: {}",
+                    notification.getId(), ex.getMessage());
         }
         return notificationRepository.save(notification);
     }
@@ -283,22 +315,31 @@ public class NotificationService {
     /**
      * Cria um {@link ScheduledMessage} para envio futuro e atualiza o status da notificação.
      *
-     * <p>O horário de agendamento é validado como sendo obrigatoriamente no futuro.
+     * <p>Recebe {@code scheduledAtUtc} já normalizado para UTC — a conversão ocorre em
+     * {@link #createNotification}, na fronteira do serviço. A validação compara contra
+     * {@code LocalDateTime.now(ZoneOffset.UTC)} para garantir que ambos os lados
+     * estejam na mesma base temporal.
      *
-     * @param notification notificação já persistida com status {@code PENDING}
-     * @param scheduledAt  data e hora alvo para o envio
+     * <p>A margem mínima de 1 minuto absorve latência de rede e pequenas diferenças
+     * de clock entre cliente e servidor.
+     *
+     * @param notification   notificação já persistida com status {@code PENDING}
+     * @param scheduledAtUtc data/hora de envio já convertida para UTC
      * @return notificação atualizada com status {@code SCHEDULED}
-     * @throws AppException {@code NOTIFICATION_INVALID_SCHEDULED_AT} se a data for no passado ou presente
+     * @throws AppException {@code NOTIFICATION_INVALID_SCHEDULED_AT} se o instante não for
+     *                      pelo menos 1 minuto no futuro em relação ao UTC atual
      */
-    private Notification scheduleForLater(Notification notification, LocalDateTime scheduledAt) {
-        if (!scheduledAt.isAfter(LocalDateTime.now())) {
+    private Notification scheduleForLater(Notification notification, LocalDateTime scheduledAtUtc) {
+        LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
+
+        if (!scheduledAtUtc.isAfter(nowUtc.plusMinutes(1))) {
             throw AppException.badRequest(ErrorCode.NOTIFICATION_INVALID_SCHEDULED_AT,
-                    "A data de agendamento deve ser futura.");
+                    "A data de agendamento deve ser pelo menos 1 minuto no futuro.");
         }
 
         ScheduledMessage scheduled = ScheduledMessage.builder()
                 .notification(notification)
-                .scheduledAt(scheduledAt)
+                .scheduledAt(scheduledAtUtc)   // UTC — mesma base do scheduler
                 .status(ScheduledMessageStatus.PENDING)
                 .attempts(0)
                 .build();
@@ -308,7 +349,7 @@ public class NotificationService {
         notification.setStatus(NotificationStatus.SCHEDULED);
         Notification saved = notificationRepository.save(notification);
 
-        log.info("Notificação {} agendada para {}", notification.getId(), scheduledAt);
+        log.info("Notificação {} agendada para {} UTC", notification.getId(), scheduledAtUtc);
         return saved;
     }
 
@@ -318,7 +359,8 @@ public class NotificationService {
      * <p>Se {@code templateVersionId} for fornecido no request, busca diretamente por ID.
      * Caso contrário, busca a versão mais recente do template.
      *
-     * @param request dados da requisição contendo {@code templateId} e, opcionalmente, {@code templateVersionId}
+     * @param request dados da requisição contendo {@code templateId} e, opcionalmente,
+     *                {@code templateVersionId}
      * @return versão do template resolvida
      * @throws AppException {@code TEMPLATE_VERSION_NOT_FOUND} se a versão não for encontrada
      */

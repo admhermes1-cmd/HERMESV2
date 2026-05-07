@@ -76,7 +76,9 @@ export const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
  * @property {NotificationRecipients}   recipients        - Destinatários organizados por tipo.
  * @property {Record<string, string>}   variables         - Mapa de chave→valor para preencher as lacunas do template.
  * @property {NotificationAttachment[]} attachments       - Arquivos anexados (somente EMAIL suporta).
- * @property {string|null}              scheduledAt       - ISO 8601 para envio futuro; null = envio imediato.
+ * @property {string|null}              scheduledAt       - ISO 8601 com offset para envio futuro (ex:
+ *                                                          "2026-05-07T15:00:00-03:00" ou "2026-05-07T18:00:00Z");
+ *                                                          null = envio imediato.
  * @property {string|null}              sentAt            - ISO 8601 preenchido após envio com sucesso.
  * @property {string|null}              error             - Mensagem de erro do último envio falho.
  * @property {string}                   createdBy         - ID do usuário ou serviço que originou a notificação.
@@ -112,6 +114,27 @@ function isValidEmail(email) {
  */
 function totalAttachmentSize(attachments) {
   return attachments.reduce((sum, a) => sum + (Number(a.size) || 0), 0);
+}
+
+/**
+ * Serializa uma data para ISO 8601 com offset UTC explícito ("Z").
+ *
+ * O backend espera `OffsetDateTime` — um valor sem offset (ex: "2026-05-07T15:00:00",
+ * produzido por `<input type="datetime-local">`) seria interpretado ambiguamente.
+ * Esta função garante que o offset UTC seja sempre declarado no payload enviado à API.
+ *
+ * @param {Date|string} date - Data a serializar. Strings sem offset são interpretadas
+ *                             como horário local do navegador e convertidas para UTC.
+ * @returns {string} ISO 8601 com sufixo "Z" (ex: "2026-05-07T18:00:00.000Z").
+ *
+ * @example
+ * // Usuário em UTC-3 seleciona "15:00" num datetime-local:
+ * serializeScheduledAt(new Date('2026-05-07T15:00'))
+ * // → "2026-05-07T18:00:00.000Z"  (convertido para UTC automaticamente)
+ */
+export function serializeScheduledAt(date) {
+  if (!date) return null;
+  return new Date(date).toISOString(); // sempre retorna UTC com "Z"
 }
 
 // ---------------------------------------------------------------------------
@@ -154,11 +177,11 @@ export function createNotification(data = {}) {
     attachments:       Array.isArray(data.attachments)
                          ? data.attachments.map(a => Object.freeze({ name: a.name ?? '', size: Number(a.size) || 0 }))
                          : [],
-    scheduledAt:       data.scheduledAt       ?? null,
-    sentAt:            data.sentAt            ?? null,
-    error:             data.error             ?? null,
-    createdBy:         data.createdBy         ?? '',
-    createdAt:         data.createdAt         ?? new Date().toISOString(),
+    scheduledAt:       data.scheduledAt ?? null,
+    sentAt:            data.sentAt      ?? null,
+    error:             data.error       ?? null,
+    createdBy:         data.createdBy   ?? '',
+    createdAt:         data.createdAt   ?? new Date().toISOString(),
   });
 }
 
@@ -177,7 +200,7 @@ export function createNotification(data = {}) {
  * - Todos os e-mails em to/cc/bcc devem ter formato válido (para EMAIL).
  * - Soma dos anexos não pode ultrapassar `MAX_ATTACHMENT_SIZE_BYTES`.
  * - `createdBy` obrigatório.
- * - Se `scheduledAt` for fornecido, deve representar data futura.
+ * - Se `scheduledAt` for fornecido, deve representar data futura e ser parseável como Date.
  *
  * @param {Notification} notification
  * @returns {NotificationValidationResult}
@@ -216,11 +239,19 @@ export function validateNotification(notification) {
     }
   }
 
-  // scheduledAt — deve ser uma data futura, se fornecida
+  // scheduledAt — deve ser uma data futura, se fornecida.
+  //
+  // O valor aceito é qualquer string parseável por `new Date()`, incluindo:
+  //   - ISO 8601 com offset:  "2026-05-07T15:00:00-03:00"
+  //   - ISO 8601 UTC (Z):     "2026-05-07T18:00:00.000Z"  ← formato de serializeScheduledAt()
+  //   - datetime-local cru:   "2026-05-07T15:00"  (interpretado como horário local do navegador)
+  //
+  // Ao montar o payload para a API, sempre use `serializeScheduledAt()` para garantir
+  // que o offset UTC seja declarado explicitamente no JSON enviado ao backend.
   if (notification.scheduledAt !== null && notification.scheduledAt !== undefined) {
     const scheduledDate = new Date(notification.scheduledAt);
     if (isNaN(scheduledDate.getTime())) {
-      errors.push('scheduledAt: formato de data inválido (use ISO 8601).');
+      errors.push('scheduledAt: formato de data inválido. Use serializeScheduledAt() para serializar datas.');
     } else if (scheduledDate <= new Date()) {
       errors.push('scheduledAt: deve ser uma data/hora no futuro.');
     }

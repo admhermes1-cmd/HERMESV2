@@ -9,7 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +28,12 @@ import java.util.UUID;
  *
  * <p>Arquivos em si chegam via {@code multipart/form-data} em requisição separada;
  * este DTO transporta apenas os metadados dos anexos ({@link AttachmentMetadataDTO}).</p>
+ *
+ * <p><strong>Timezone:</strong> {@code scheduledAt} é declarado como {@link OffsetDateTime},
+ * exigindo que o cliente informe o offset explicitamente no JSON
+ * (ex: {@code "2026-05-07T15:00:00-03:00"} ou {@code "2026-05-07T18:00:00Z"}).
+ * O frontend deve serializar datas com {@code new Date(value).toISOString()} para garantir
+ * o sufixo {@code Z} (UTC). A conversão para UTC ocorre em {@code NotificationService}.</p>
  */
 @Data
 @NoArgsConstructor
@@ -85,12 +91,19 @@ public class NotificationRequestDTO {
     private List<AttachmentMetadataDTO> attachments = new ArrayList<>();
 
     /**
-     * Data e hora para agendamento da notificação.
+     * Data e hora para agendamento da notificação, com offset de fuso horário obrigatório.
      *
      * <p>{@code null} para envio imediato; qualquer valor futuro aciona
      * o mecanismo de agendamento ({@code ScheduledMessage}).</p>
+     *
+     * <p>O offset deve ser declarado explicitamente pelo cliente:
+     * <ul>
+     *   <li>{@code "2026-05-07T15:00:00-03:00"} — Brasília (BRT)</li>
+     *   <li>{@code "2026-05-07T18:00:00Z"} — UTC (produzido por {@code toISOString()} no JS)</li>
+     * </ul>
+     * O {@code NotificationService} converte para UTC antes de persistir.</p>
      */
-    private LocalDateTime scheduledAt;
+    private OffsetDateTime scheduledAt;
 
     // -------------------------------------------------------------------------
     // Records internos

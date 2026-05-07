@@ -154,7 +154,7 @@ public class Notification {
      * o status como {@link NotificationStatus#SCHEDULED}.
      */
     @Column(name = "scheduled_at")
-    private LocalDateTime scheduledAt;
+    private LocalDateTime scheduledAt; // sempre em UTC
 
     /**
      * Momento em que a notificação foi efetivamente entregue ao canal.
