@@ -152,7 +152,7 @@ export default function UserFormPage() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate(APP_CONSTANTS.ROUTES.USERS)}
+            onClick={() => navigate('/users')}
             disabled={isSubmitting}
           >
             Cancelar
