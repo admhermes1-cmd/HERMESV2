@@ -44,6 +44,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final PasswordValidationService passwordValidationService;
 
     // -------------------------------------------------------------------------
     // Consultas
@@ -157,6 +158,42 @@ public class UserService {
     }
 
     // -------------------------------------------------------------------------
+    // Troca de senha
+    // -------------------------------------------------------------------------
+
+    /**
+     * Troca a senha do usuário autenticado, aplicando todas as regras de complexidade.
+     *
+     * <p>Ao concluir com sucesso, seta {@code mustChangePassword = false},
+     * liberando o usuário para navegar normalmente pelo sistema.</p>
+     *
+     * @param currentPassword senha atual em texto puro — para verificação.
+     * @param newPassword     nova senha em texto puro — deve cumprir política de senhas.
+     * @throws AppException {@code PASSWORD_CURRENT_INCORRECT} se a senha atual estiver errada.
+     * @throws AppException {@code PASSWORD_POLICY_VIOLATION}  se a nova senha violar alguma regra.
+     */
+    @Transactional
+    public void changePassword(String currentPassword, String newPassword) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(AppException::userNotFound);
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw AppException.passwordCurrentIncorrect();
+        }
+
+        passwordValidationService.validate(newPassword, user, currentPassword);
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
+
+        userRepository.save(user);
+
+        log.info("Senha alterada com sucesso para o usuário: id={}", user.getId());
+    }
+
+    // -------------------------------------------------------------------------
     // Redefinição de senha
     // -------------------------------------------------------------------------
 
@@ -171,9 +208,10 @@ public class UserService {
         User user = findUserOrThrow(id);
 
         String rawPassword = generateRandomPassword();
+
         user.setPassword(passwordEncoder.encode(rawPassword));
-        userRepository.save(user);
         user.setMustChangePassword(true);
+
         userRepository.save(user);
 
         log.info("Senha redefinida para o usuário: id={}", user.getId());
@@ -246,9 +284,11 @@ public class UserService {
     private String generateRandomPassword() {
         SecureRandom random = new SecureRandom();
         StringBuilder sb = new StringBuilder(PASSWORD_LENGTH);
+
         for (int i = 0; i < PASSWORD_LENGTH; i++) {
             sb.append(PASSWORD_CHARS.charAt(random.nextInt(PASSWORD_CHARS.length())));
         }
+
         return sb.toString();
     }
 
@@ -266,12 +306,14 @@ public class UserService {
         try {
             emailService.sendWelcomeEmail(user.getEmail(), user.getName(), rawPassword);
         } catch (Exception e) {
-            log.error("HERMES-EMAIL-DEBUG | tipo={} | msg={} | causa={} | stacktrace=",
-                e.getClass().getName(), 
+            log.error(
+                "HERMES-EMAIL-DEBUG | tipo={} | msg={} | causa={} | stacktrace=",
+                e.getClass().getName(),
                 e.getMessage(),
                 e.getCause() != null ? e.getCause().getMessage() : "nenhuma",
                 e
             );
+
             // NÃO relança — usuário já foi criado com sucesso.
             // Remover este bloco após identificar a causa.
         }
