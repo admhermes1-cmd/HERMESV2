@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { notificationService } from '../services/notificationService';
 import { templateService } from '../services/templateService';
 import { getLatestVersion } from '../models/Template';
-import { validateNotification } from '../models/Notification';
 import { EMAIL } from '../core/constants/appConstants';
 import { validateNotification, serializeScheduledAt } from '../models/Notification'
 
