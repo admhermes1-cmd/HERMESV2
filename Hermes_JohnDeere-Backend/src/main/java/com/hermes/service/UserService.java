@@ -173,6 +173,8 @@ public class UserService {
         String rawPassword = generateRandomPassword();
         user.setPassword(passwordEncoder.encode(rawPassword));
         userRepository.save(user);
+        user.setMustChangePassword(true);
+        userRepository.save(user);
 
         log.info("Senha redefinida para o usuário: id={}", user.getId());
 
@@ -265,7 +267,7 @@ public class UserService {
             emailService.sendWelcomeEmail(user.getEmail(), user.getName(), rawPassword);
         } catch (Exception e) {
             log.error("HERMES-EMAIL-DEBUG | tipo={} | msg={} | causa={} | stacktrace=",
-                e.getClass().getName(),
+                e.getClass().getName(), 
                 e.getMessage(),
                 e.getCause() != null ? e.getCause().getMessage() : "nenhuma",
                 e

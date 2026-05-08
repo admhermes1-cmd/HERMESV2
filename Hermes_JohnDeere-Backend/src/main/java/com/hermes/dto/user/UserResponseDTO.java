@@ -27,6 +27,7 @@ public record UserResponseDTO(
         String role,
         String apiKey,
         boolean isActive,
+        boolean mustChangePassword,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -45,6 +46,7 @@ public record UserResponseDTO(
                 user.getRole().name(),
                 user.getApiKey(),
                 user.isActive(),
+                user.getMustChangePassword(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );

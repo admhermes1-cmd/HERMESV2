@@ -117,6 +117,12 @@ public class User implements UserDetails {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * Indica se o usuário deve alterar a senha na próxima autenticação.
+     */
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = true;
+
     // ─── Lifecycle callbacks ──────────────────────────────────────────────────
 
     /**
