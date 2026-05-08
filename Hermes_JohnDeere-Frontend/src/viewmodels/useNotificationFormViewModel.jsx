@@ -326,7 +326,7 @@ export function useNotificationFormViewModel() {
       templateVersionId: form.templateVersionId,
       recipients: form.recipients,
       variables: form.variables,
-      scheduledAt: form.isImmediate ? null : form.scheduledAt || null,
+      scheduledAt: form.isImmediate ? null : form.scheduledAt ? `${form.scheduledAt}:00Z` : null,
     });
 
     if (!modelError.valid) {
@@ -344,7 +344,7 @@ export function useNotificationFormViewModel() {
           templateVersionId: form.templateVersionId,
           recipients: form.recipients,
           variables: form.variables,
-          scheduledAt: form.isImmediate ? null : form.scheduledAt || null,
+          scheduledAt: form.isImmediate ? null : form.scheduledAt ? `${form.scheduledAt}:00Z` : null,
         },
         attachments.length ? attachments : undefined
       );
