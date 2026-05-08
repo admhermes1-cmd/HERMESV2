@@ -71,9 +71,9 @@ const sendNotification = (notificationData, attachments = []) => {
   // (@RequestPart("request") no NotificationController)
   formData.append(
   'request',
-  JSON.stringify(notificationData)
+  new Blob([JSON.stringify(notificationData)], { type: 'application/json' }),
+  'request.json'
   )
-
   if (attachments && attachments.length > 0) {
     attachments.forEach((file) => {
       formData.append('attachments', file, file.name)
