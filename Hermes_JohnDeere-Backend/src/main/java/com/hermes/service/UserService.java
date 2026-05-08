@@ -264,9 +264,14 @@ public class UserService {
         try {
             emailService.sendWelcomeEmail(user.getEmail(), user.getName(), rawPassword);
         } catch (Exception e) {
-            log.error("Falha ao enviar e-mail de boas-vindas para {}: {}", user.getEmail(), e.getMessage());
-            // Não lança exceção: a criação do usuário já foi concluída com sucesso.
-            // Em um cenário de produção, registrar em uma fila de reenvio.
+            log.error("HERMES-EMAIL-DEBUG | tipo={} | msg={} | causa={} | stacktrace=",
+                e.getClass().getName(),
+                e.getMessage(),
+                e.getCause() != null ? e.getCause().getMessage() : "nenhuma",
+                e
+            );
+            // NÃO relança — usuário já foi criado com sucesso.
+            // Remover este bloco após identificar a causa.
         }
     }
 }
