@@ -4,6 +4,8 @@ import { templateService } from '../services/templateService';
 import { getLatestVersion } from '../models/Template';
 import { validateNotification } from '../models/Notification';
 import { EMAIL } from '../core/constants/appConstants';
+import { validateNotification, serializeScheduledAt } from '../models/Notification'
+
 
 /**
  * Limite máximo de tamanho total de anexos.
@@ -326,7 +328,7 @@ export function useNotificationFormViewModel() {
       templateVersionId: form.templateVersionId,
       recipients: form.recipients,
       variables: form.variables,
-      scheduledAt: form.isImmediate ? null : form.scheduledAt ? `${form.scheduledAt}:00Z` : null,
+      scheduledAt: form.isImmediate ? null : form.scheduledAt ? serializeScheduledAt(form.scheduledAt) : null,
     });
 
     if (!modelError.valid) {
@@ -344,7 +346,7 @@ export function useNotificationFormViewModel() {
           templateVersionId: form.templateVersionId,
           recipients: form.recipients,
           variables: form.variables,
-          scheduledAt: form.isImmediate ? null : form.scheduledAt ? `${form.scheduledAt}:00Z` : null,
+          scheduledAt: form.isImmediate ? null : form.scheduledAt ? serializeScheduledAt(form.scheduledAt) : null,
         },
         attachments.length ? attachments : undefined
       );
