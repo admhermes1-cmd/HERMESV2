@@ -2,12 +2,15 @@ package com.hermes.controller;
 
 import com.hermes.dto.auth.LoginRequestDTO;
 import com.hermes.dto.auth.LoginResponseDTO;
+import com.hermes.dto.user.ChangePasswordRequestDTO;
 import com.hermes.exception.AppException;
 import com.hermes.exception.AppException.ErrorCode;
 import com.hermes.security.JwtUtil;
 import com.hermes.service.AuthService;
+import com.hermes.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,6 +41,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
+    private final UserService userService;
 
     /**
      * Autentica o usuário com email e senha.
@@ -145,6 +149,38 @@ public class AuthController {
     }
 
     /**
+     * Troca a senha do usuário autenticado.
+     *
+     * <p>
+     * Obrigatório no primeiro acesso (quando {@code mustChangePassword = true}).
+     * Disponível também para qualquer usuário autenticado que deseje trocar sua senha.
+     * </p>
+     *
+     * @param dto corpo com {@code currentPassword} e {@code newPassword}.
+     * @return {@code 204 No Content} em caso de sucesso.
+     */
+    @PostMapping("/change-password")
+    @Operation(
+            summary = "Trocar senha",
+            description = "Obrigatório no primeiro acesso. Valida política de senhas."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Senha alterada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Senha atual incorreta ou nova senha viola política"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado")
+    })
+    public ResponseEntity<Void> changePassword(
+            @Valid @RequestBody ChangePasswordRequestDTO dto) {
+
+        userService.changePassword(
+                dto.currentPassword(),
+                dto.newPassword()
+        );
+
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Retorna os dados do usuário atualmente autenticado.
      * <p>
      * O email é extraído do {@link SecurityContextHolder} e utilizado para
@@ -161,8 +197,13 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Dados do usuário retornados com sucesso")
     @ApiResponse(responseCode = "401", description = "Usuário não autenticado")
     public ResponseEntity<LoginResponseDTO.UserDTO> getMe() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
         LoginResponseDTO.UserDTO userDTO = authService.getMe(email);
+
         return ResponseEntity.ok(userDTO);
     }
 }

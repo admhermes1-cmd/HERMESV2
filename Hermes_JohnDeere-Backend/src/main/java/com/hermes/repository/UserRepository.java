@@ -92,4 +92,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return página de {@link User}.
      */
     Page<User> findByIsActive(boolean isActive, Pageable pageable);
+
+    /**
+     * Busca um usuário pelo endereço de e-mail.
+     *
+     * @param email endereço de e-mail.
+     * @return {@link Optional} contendo o usuário, ou vazio se não encontrado.
+     */
+    Optional<User> findByEmail(String email);
 }
