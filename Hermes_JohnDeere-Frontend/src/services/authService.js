@@ -43,6 +43,20 @@ const refreshToken = (refreshToken) =>
 const getMe = () =>
   apiClient.get(ENDPOINTS.AUTH.ME)
 
+/**
+ * Envia a troca de senha para o endpoint POST /auth/change-password.
+ *
+ * @param {{ currentPassword: string, newPassword: string }} payload
+ * @returns {Promise<void>}
+ */
+async changePassword(payload) {
+  try {
+    await apiClient.post(ENDPOINTS.AUTH.CHANGE_PASSWORD, payload);
+  } catch (err) {
+    throw toServiceError(err);
+  }
+},
+
 export const authService = {
   login,
   logout,
