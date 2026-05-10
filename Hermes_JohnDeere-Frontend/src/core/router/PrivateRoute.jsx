@@ -6,8 +6,11 @@
  * Responsabilidades EXCLUSIVAS deste componente:
  *  1. Aguardar a verificação inicial de sessão (`isLoading`) sem redirecionar prematuramente.
  *  2. Redirecionar usuários não-autenticados para `/login`, preservando a rota de origem.
- *  3. Redirecionar usuários autenticados sem o role necessário para `/`, sinalizando não-autorização.
- *  4. Renderizar `<Outlet />` quando todas as verificações passam.
+ *  3. Redirecionar usuários com `mustChangePassword = true` para `/change-password`,
+ *     impedindo acesso a qualquer outra rota até a troca ser concluída.
+ *  4. Redirecionar usuários autenticados sem o role necessário para `/dashboard`,
+ *     sinalizando não-autorização.
+ *  5. Renderizar `<Outlet />` quando todas as verificações passam.
  *
  * Este componente é AGNÓSTICO à composição de layout — ele apenas decide
  * se o usuário pode ou não acessar o que está abaixo dele na árvore de rotas.
@@ -28,6 +31,9 @@ const LOGIN_PATH = '/login';
 
 /** Rota de fallback para usuários sem permissão de role. */
 const HOME_PATH = '/dashboard';
+
+/** Rota de troca obrigatória de senha no primeiro acesso. */
+const CHANGE_PASSWORD_PATH = '/change-password';
 
 // ---------------------------------------------------------------------------
 // Componente
@@ -62,9 +68,10 @@ const HOME_PATH = '/dashboard';
  *
  * @returns {React.ReactElement}
  *   - `<LoadingSpinner />` fullscreen enquanto a sessão está sendo verificada.
- *   - `<Navigate to="/login" />` se não autenticado (preserva `state.from`).
- *   - `<Navigate to="/" />`     se sem o role necessário (sinaliza `state.unauthorized`).
- *   - `<Outlet />`              se autenticado e autorizado.
+ *   - `<Navigate to="/login" />`           se não autenticado (preserva `state.from`).
+ *   - `<Navigate to="/change-password" />` se `mustChangePassword = true`.
+ *   - `<Navigate to="/dashboard" />`       se sem o role necessário (sinaliza `state.unauthorized`).
+ *   - `<Outlet />`                         se autenticado e autorizado.
  */
 function PrivateRoute({ requiredRole }) {
   const { isAuthenticated, isLoading, isAdmin, user } = useAuth();
@@ -95,10 +102,25 @@ function PrivateRoute({ requiredRole }) {
   }
 
   // -------------------------------------------------------------------------
-  // CASO 3 — Usuário autenticado mas sem o role necessário
-  // Redirecionamos para `/` e sinalizamos `state.unauthorized = true` para
-  // que o componente de destino (DashboardPage ou equivalente) possa exibir
-  // um feedback contextual sem acoplar lógica de autorização à view.
+  // CASO 3 — Primeiro acesso: troca de senha obrigatória
+  // Impede acesso a QUALQUER rota protegida até o usuário definir nova senha.
+  // A própria rota /change-password é excluída da verificação para evitar
+  // loop infinito de redirecionamento.
+  // -------------------------------------------------------------------------
+  if (user?.mustChangePassword && location.pathname !== CHANGE_PASSWORD_PATH) {
+    return (
+      <Navigate
+        to={CHANGE_PASSWORD_PATH}
+        replace
+      />
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // CASO 4 — Usuário autenticado mas sem o role necessário
+  // Redirecionamos para `/dashboard` e sinalizamos `state.unauthorized = true`
+  // para que o componente de destino possa exibir um feedback contextual sem
+  // acoplar lógica de autorização à view.
   //
   // Verificação de role:
   //   - Se `requiredRole === 'ADMIN'`, usamos o atalho `isAdmin` do useAuth.
@@ -123,7 +145,7 @@ function PrivateRoute({ requiredRole }) {
   }
 
   // -------------------------------------------------------------------------
-  // CASO 4 — Autenticado e autorizado
+  // CASO 5 — Autenticado e autorizado
   // Renderiza os filhos da rota via Outlet (padrão React Router v6).
   // -------------------------------------------------------------------------
   return <Outlet />;
