@@ -17,10 +17,15 @@
  *  │       └─ /login
  *  │
  *  ├─ PrivateRoute                ← guarda: qualquer usuário autenticado
+ *  │   ├─ /change-password        (ChangePasswordPage — SEM MainLayout, tela isolada)
  *  │   └─ MainLayout              ← layout autenticado (sidebar + header)
  *  │       ├─ /                   (DashboardPage)
+ *  │       ├─ /dashboard
  *  │       ├─ /templates          (TemplatesPage)
- *  │       └─ /notifications/new  (NotificationFormPage)
+ *  │       ├─ /notifications/new  (NotificationFormPage)
+ *  │       ├─ /users              (UsersPage)
+ *  │       ├─ /users/new          (UserFormPage)
+ *  │       └─ /users/:id/edit     (UserFormPage)
  *  │
  *  ├─ PrivateRoute[ADMIN]         ← guarda: autenticado + role ADMIN
  *  │   └─ MainLayout
@@ -44,15 +49,13 @@ import PrivateRoute from './PrivateRoute.jsx';
 import LoadingSpinner from '../../views/components/common/LoadingSpinner.jsx';
 import MainLayout from '../../views/layouts/MainLayout.jsx';
 import AuthLayout from '../../views/layouts/AuthLayout.jsx';
-import UsersPage    from '../../views/pages/UsersPage';
+import UsersPage from '../../views/pages/UsersPage';
 import UserFormPage from '../../views/pages/UserFormPage';
+import ChangePasswordPage from '../../views/pages/ChangePasswordPage';
 import { ROUTES } from '../constants/appConstants';
 
 // ---------------------------------------------------------------------------
 // Importações lazy das páginas
-// Cada página vira um chunk separado — carregado apenas quando acessada.
-// O comentário /* webpackChunkName */ é preservado pelo Vite (via Rollup)
-// e produz nomes legíveis nos bundles de produção.
 // ---------------------------------------------------------------------------
 
 /** @type {React.LazyExoticComponent} Página de login. */
@@ -73,7 +76,6 @@ const TemplatesPage = lazy(() =>
 /**
  * @type {React.LazyExoticComponent}
  * Formulário de template — reutilizado em /templates/new e /templates/:id/edit.
- * O componente detecta internamente o modo via useParams().
  */
 const TemplateFormPage = lazy(() =>
   import(/* webpackChunkName: "page-template-form" */ '../../views/pages/TemplateFormPage.jsx')
@@ -98,14 +100,9 @@ const NotFoundPage = lazy(() =>
  *
  * Se o usuário já estiver autenticado e tentar acessar /login, ele é
  * redirecionado para a rota de origem (state.from) ou para /.
- * Enquanto a sessão está sendo verificada (isLoading), exibe o spinner
- * para evitar flash de redirect incorreto.
  *
  * @component
  * @returns {React.ReactElement}
- *   - <LoadingSpinner /> enquanto verifica a sessão.
- *   - <Navigate to="/" /> (ou state.from) se já autenticado.
- *   - <Outlet />          se não autenticado.
  */
 function PublicOnlyRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -116,8 +113,6 @@ function PublicOnlyRoute() {
   }
 
   if (isAuthenticated) {
-    // Redireciona de volta para onde o usuário queria ir (se veio de uma rota
-    // protegida que o mandou ao login) ou para o dashboard como padrão.
     const destination = location.state?.from?.pathname ?? '/';
     return <Navigate to={destination} replace />;
   }
@@ -129,33 +124,15 @@ function PublicOnlyRoute() {
 // Definição do router (singleton fora do componente)
 // ---------------------------------------------------------------------------
 
-/**
- * Instância singleton do router do HERMES.
- *
- * Criada fora do componente `AppRouter` intencionalmente: recriar o router
- * a cada render causaria re-montagem completa da árvore de rotas, perdendo
- * estado de formulários, scroll position e histórico de navegação.
- *
- * @see https://reactrouter.com/en/main/routers/create-browser-router
- */
 const router = createBrowserRouter([
 
   // =========================================================================
   // BLOCO 1 — Rotas públicas com AuthLayout
   // =========================================================================
   {
-    /**
-     * Wrapper de layout para telas de autenticação.
-     * AuthLayout fornece o visual de tela cheia de login (logo, fundo, etc.).
-     */
     element: <AuthLayout />,
     children: [
       {
-        /**
-         * Guarda de rota pública: redireciona usuários já logados.
-         * Mantido como rota aninhada separada para preservar a responsabilidade
-         * única do AuthLayout (apenas fornecer o shell visual).
-         */
         element: <PublicOnlyRoute />,
         children: [
           {
@@ -168,24 +145,30 @@ const router = createBrowserRouter([
   },
 
   // =========================================================================
-  // BLOCO 2 — Rotas privadas (qualquer usuário autenticado) com MainLayout
+  // BLOCO 2 — Rotas privadas (qualquer usuário autenticado)
   // =========================================================================
   {
-    /**
-     * Guarda de autenticação sem restrição de role.
-     * Qualquer usuário autenticado tem acesso às rotas filhas.
-     */
     element: <PrivateRoute />,
     children: [
+
+      // ---------------------------------------------------------------------
+      // /change-password — tela isolada, SEM MainLayout.
+      // Exibida obrigatoriamente no primeiro acesso (mustChangePassword = true).
+      // Fica aqui fora do MainLayout para não mostrar sidebar/header enquanto
+      // o usuário ainda não completou o cadastro da senha.
+      // ---------------------------------------------------------------------
       {
-        /**
-         * Shell autenticado: sidebar, header, e área de conteúdo principal.
-         * Todas as páginas internas compartilham este layout via Outlet.
-         */
+        path: '/change-password',
+        element: <ChangePasswordPage />,
+      },
+
+      // ---------------------------------------------------------------------
+      // Demais rotas autenticadas — COM MainLayout (sidebar + header)
+      // ---------------------------------------------------------------------
+      {
         element: <MainLayout />,
         children: [
           {
-            /** Redireciona raiz para o dashboard. */
             index: true,
             element: <Navigate to="/dashboard" replace />,
           },
@@ -194,31 +177,28 @@ const router = createBrowserRouter([
             element: <Navigate to="/dashboard" replace />,
           },
           {
-            /** Dashboard — rota raiz da área autenticada. */
             path: '/dashboard',
             element: <DashboardPage />,
           },
           {
-            /** Listagem de todos os templates de notificação. */
             path: '/templates',
             element: <TemplatesPage />,
           },
           {
-            /** Formulário de criação/agendamento de nova notificação. */
             path: '/notifications/new',
             element: <NotificationFormPage />,
           },
           {
-          path:    ROUTES.USERS,
-          element: <UsersPage />,
+            path: ROUTES.USERS,
+            element: <UsersPage />,
           },
           {
-          path:    ROUTES.USER_NEW,
-          element: <UserFormPage />,
+            path: ROUTES.USER_NEW,
+            element: <UserFormPage />,
           },
           {
-          path:    '/users/:id/edit',
-          element: <UserFormPage />,
+            path: '/users/:id/edit',
+            element: <UserFormPage />,
           },
         ],
       },
@@ -229,31 +209,16 @@ const router = createBrowserRouter([
   // BLOCO 3 — Rotas privadas ADMIN-only com MainLayout
   // =========================================================================
   {
-    /**
-     * Guarda de autenticação com role ADMIN obrigatório.
-     * Usuários autenticados sem role ADMIN são redirecionados para /
-     * com state.unauthorized = true — acessível via useLocation na view.
-     */
     element: <PrivateRoute requiredRole="ADMIN" />,
     children: [
       {
         element: <MainLayout />,
         children: [
           {
-            /**
-             * Criação de novo template.
-             * Separado de /templates para que a listagem permaneça acessível
-             * a todos os usuários, enquanto apenas admins criam templates.
-             */
             path: '/templates/new',
             element: <TemplateFormPage />,
           },
           {
-            /**
-             * Edição de template existente.
-             * O parâmetro dinâmico :id é extraído internamente pelo
-             * TemplateFormPage via useParams() para buscar os dados do template.
-             */
             path: '/templates/:id/edit',
             element: <TemplateFormPage />,
           },
@@ -266,11 +231,6 @@ const router = createBrowserRouter([
   // BLOCO 4 — Catch-all 404
   // =========================================================================
   {
-    /**
-     * Rota curinga: captura qualquer path não mapeado acima.
-     * Renderizada standalone, sem layout, sem guarda de autenticação.
-     * A NotFoundPage é responsável pelo seu próprio visual e link de volta.
-     */
     path: '*',
     element: <NotFoundPage />,
   },
@@ -283,27 +243,8 @@ const router = createBrowserRouter([
 /**
  * Ponto de entrada do sistema de roteamento do HERMES.
  *
- * Deve ser montado no App.jsx como filho direto do AuthProvider.
- * O Suspense envolve o RouterProvider para capturar as promises de
- * carregamento lazy das páginas — sem ele, o React lançaria um erro de
- * Suspense sem boundary definido.
- *
  * @component
- *
- * @example
- * // App.jsx
- * import { AuthProvider } from './core/auth/AuthContext';
- * import AppRouter from './core/router/AppRouter';
- *
- * function App() {
- *   return (
- *     <AuthProvider>
- *       <AppRouter />
- *     </AuthProvider>
- *   );
- * }
- *
- * @returns {React.ReactElement} O provider de rotas completo da aplicação.
+ * @returns {React.ReactElement}
  */
 function AppRouter() {
   return (
