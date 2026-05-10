@@ -63,6 +63,15 @@ const AUTH = Object.freeze({
    * @returns {import('@/models/User').User}
    */
   ME: '/auth/me',
+  
+  /**
+  * Permite ao usuário autenticado alterar sua senha atual.
+  * Requer validação da senha atual e aplicação da política de segurança.
+  * @type {string}
+  * @method POST
+  * @body {{ currentPassword: string, newPassword: string }}
+  */
+  CHANGE_PASSWORD: '/auth/change-password',
 })
 
 // ---------------------------------------------------------------------------
