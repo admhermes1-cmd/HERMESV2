@@ -72,6 +72,10 @@ public class User implements UserDetails {
     /**
      * Senha do usuário armazenada como hash bcrypt.
      * <strong>Nunca</strong> armazenar texto plano.
+     *
+     * <p>O getter {@link #getPassword()} é implementado manualmente porque o Lombok
+     * não gera getters para métodos já declarados em interfaces implementadas
+     * ({@link UserDetails#getPassword()}).</p>
      */
     @Column(nullable = false)
     private String password;
@@ -98,10 +102,14 @@ public class User implements UserDetails {
     /**
      * Indica se a conta está ativa. Contas inativas não conseguem autenticar.
      * Valor padrão: {@code true}.
+     *
+     * <p>Nomeado {@code active} (sem prefixo {@code is}) para evitar que o Lombok
+     * gere {@code isIsActive()} — o getter correto gerado será {@code isActive()},
+     * satisfazendo o contrato de {@link UserDetails#isEnabled()}.</p>
      */
     @Builder.Default
-    @Column(nullable = false)
-    private boolean isActive = true;
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
 
     // ─── Auditoria ────────────────────────────────────────────────────────────
 
@@ -162,6 +170,19 @@ public class User implements UserDetails {
     }
 
     /**
+     * Retorna o hash bcrypt da senha.
+     *
+     * <p>Implementado manualmente porque o Lombok não gera getters para métodos
+     * já declarados em interfaces implementadas. Sem este método, o compilador
+     * reporta {@code User is not abstract and does not override abstract method
+     * getPassword() in UserDetails}.</p>
+     */
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    /**
      * Retorna o e-mail como identificador principal para o Spring Security.
      */
     @Override
@@ -187,9 +208,11 @@ public class User implements UserDetails {
         return true;
     }
 
-    /** {@inheritDoc} — Delegado ao campo {@link #isActive}. */
+    /**
+     * {@inheritDoc} — Delegado ao campo {@link #active}.
+     */
     @Override
     public boolean isEnabled() {
-        return isActive;
+        return active;
     }
 }
