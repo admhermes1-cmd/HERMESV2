@@ -61,6 +61,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  *
  * @example
  * const user = createUser({ name: 'Ana', email: 'ana@example.com' });
+ * @property {boolean} mustChangePassword - true se o usuário deve trocar a senha no próximo login.
  */
 export function createUser(data = {}) {
   return Object.freeze({
@@ -71,6 +72,7 @@ export function createUser(data = {}) {
     apiKey:    data.apiKey    ?? null,
     createdAt: data.createdAt ?? new Date().toISOString(),
     isActive:  data.isActive  !== undefined ? Boolean(data.isActive) : true,
+    mustChangePassword: data.mustChangePassword !== undefined ? Boolean(data.mustChangePassword) : false,
   });
 }
 
