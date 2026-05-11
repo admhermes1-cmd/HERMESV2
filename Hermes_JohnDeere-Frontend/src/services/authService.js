@@ -51,7 +51,7 @@ const getMe = () =>
  * @throws {AppError} Em caso de senha atual incorreta ou violação de política
  */
 const changePassword = (payload) =>
-  apiClient.post(ENDPOINTS.AUTH.CHANGE_PASSWORD, payload)
+  apiClient.post(ENDPOINTS.AUTH.RESET_PASSWORD, payload)
 
 export const authService = {
   login,
