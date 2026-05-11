@@ -181,6 +181,7 @@ export const ROUTES = Object.freeze({
   DASHBOARD: '/dashboard',
   TEMPLATES: '/templates',
   TEMPLATE_NEW: '/templates/new',
+  CHANGE_PASSWORD: '/change-password',
   TEMPLATE_EDIT: '/templates/:id/edit',
   NOTIFICATION_NEW: '/notifications/new',
   USERS:     '/users',
