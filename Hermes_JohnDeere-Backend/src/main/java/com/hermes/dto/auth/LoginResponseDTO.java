@@ -76,7 +76,7 @@ public record LoginResponseDTO(
                     user.getRole().name(),
                     user.getApiKey(),
                     user.isActive(),
-                    user.getMustChangePassword(),
+                    user.isMustChangePassword(),
                     user.getCreatedAt()
             );
         }
