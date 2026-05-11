@@ -48,18 +48,15 @@ const getMe = () =>
  *
  * @param {{ currentPassword: string, newPassword: string }} payload
  * @returns {Promise<void>}
+ * @throws {AppError} Em caso de senha atual incorreta ou violação de política
  */
-async changePassword(payload) {
-  try {
-    await apiClient.post(ENDPOINTS.AUTH.CHANGE_PASSWORD, payload);
-  } catch (err) {
-    throw toServiceError(err);
-  }
-},
+const changePassword = (payload) =>
+  apiClient.post(ENDPOINTS.AUTH.CHANGE_PASSWORD, payload)
 
 export const authService = {
   login,
   logout,
   refreshToken,
   getMe,
+  changePassword,
 }
