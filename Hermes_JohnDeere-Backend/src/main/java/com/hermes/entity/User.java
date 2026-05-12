@@ -28,6 +28,11 @@ import java.util.UUID;
  * <p><strong>Lombok:</strong> {@code @Getter}, {@code @Setter}, {@code @Builder},
  * {@code @NoArgsConstructor} e {@code @AllArgsConstructor} são gerados em tempo de compilação.
  * Métodos da interface {@link UserDetails} são implementados manualmente para clareza.</p>
+ *
+ * <p><strong>Convenção de campos booleanos:</strong> campos booleanos primitivos NÃO devem
+ * ter prefixo {@code is} no nome — o Lombok geraria getters como {@code isIsActive()}.
+ * Use nomes sem prefixo ({@code active}, {@code mustChangePassword}) para que o Lombok
+ * gere corretamente {@code isActive()} e {@code isMustChangePassword()}.</p>
  */
 @Entity
 @Table(
@@ -57,15 +62,11 @@ public class User implements UserDetails {
 
     // ─── Dados de identificação ───────────────────────────────────────────────
 
-    /**
-     * Nome completo do usuário, exibido na interface e em logs de auditoria.
-     */
+    /** Nome completo do usuário, exibido na interface e em logs de auditoria. */
     @Column(nullable = false)
     private String name;
 
-    /**
-     * Endereço de e-mail do usuário. Único no sistema; usado como login principal.
-     */
+    /** Endereço de e-mail do usuário. Único no sistema; usado como login principal. */
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -98,28 +99,32 @@ public class User implements UserDetails {
     /**
      * Indica se a conta está ativa. Contas inativas não conseguem autenticar.
      * Valor padrão: {@code true}.
+     *
+     * <p>Nome do campo: {@code active} (sem prefixo {@code is}) para que o Lombok
+     * gere corretamente {@code isActive()} — evita o getter duplo {@code isIsActive()}.</p>
      */
     @Builder.Default
-    @Column(nullable = false)
-    private boolean isActive = true;
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
 
     // ─── Auditoria ────────────────────────────────────────────────────────────
 
-    /**
-     * Timestamp de criação do registro. Imutável após a primeira persistência.
-     */
+    /** Timestamp de criação do registro. Imutável após a primeira persistência. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /**
-     * Timestamp da última atualização do registro.
-     */
+    /** Timestamp da última atualização do registro. */
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     /**
      * Indica se o usuário deve alterar a senha na próxima autenticação.
+     * Valor padrão: {@code true} — toda conta nova exige troca de senha no primeiro login.
+     *
+     * <p>{@code @Builder.Default} garante que o Builder respeite o valor padrão {@code true}
+     * mesmo quando o campo não é explicitamente definido na construção do objeto.</p>
      */
+    @Builder.Default
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword = true;
 
@@ -142,9 +147,7 @@ public class User implements UserDetails {
         }
     }
 
-    /**
-     * Atualiza {@code updatedAt} a cada alteração na entidade.
-     */
+    /** Atualiza {@code updatedAt} a cada alteração na entidade. */
     @PreUpdate
     protected void preUpdate() {
         this.updatedAt = LocalDateTime.now();
@@ -187,9 +190,12 @@ public class User implements UserDetails {
         return true;
     }
 
-    /** {@inheritDoc} — Delegado ao campo {@link #isActive}. */
+    /**
+     * {@inheritDoc} — Delegado ao campo {@link #active}.
+     * Lombok gera {@code isActive()} a partir do campo {@code active}.
+     */
     @Override
     public boolean isEnabled() {
-        return isActive;
+        return active;
     }
 }
