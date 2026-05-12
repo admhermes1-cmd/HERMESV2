@@ -53,7 +53,7 @@ public interface TemplateVersionRepository extends JpaRepository<TemplateVersion
      * @param templateId identificador do template pai
      * @return {@link Optional} contendo a versão ativa, ou vazio se nenhuma versão estiver ativa
      */
-    Optional<TemplateVersion> findByTemplateIdAndIsActiveTrue(UUID templateId);
+    Optional<TemplateVersion> findByTemplateIdAndActiveTrue(UUID templateId);
 
     /**
      * Busca uma versão específica de um template pelo número de versão.
