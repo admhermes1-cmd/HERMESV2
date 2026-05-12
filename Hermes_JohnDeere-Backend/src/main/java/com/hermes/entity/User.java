@@ -114,6 +114,24 @@ public class User implements UserDetails {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // Construtor all-args manual — necessário para Hibernate/JPA.
+    // @AllArgsConstructor não pode coexistir com @Builder.Default.
+    public User(UUID id, String name, String email, String password,
+            UserRole role, String apiKey, boolean active,
+            LocalDateTime createdAt, LocalDateTime updatedAt,
+            boolean mustChangePassword) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.apiKey = apiKey;
+        this.active = active;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.mustChangePassword = mustChangePassword;
+    }
+
     // ─── UserDetails ─────────────────────────────────────────────────────────
 
     @Override
