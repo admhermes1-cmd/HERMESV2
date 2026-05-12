@@ -330,7 +330,7 @@ public class AppException extends RuntimeException {
         USER_CANNOT_DELETE_SELF(409, "Você não pode excluir sua própria conta"),
 
         PASSWORD_POLICY_VIOLATION(400, "A senha não cumpre os requisitos de segurança"),
-        PASSWORD_CURRENT_INCORRECT(400, "A senha atual está incorreta"),
+        PASSWORD_CURRENT_INCORRECT(400, "A senha inserida no campo \"Senha temporária\" está incorreta"),
 
         USER_SEND_EMAIL_FAILED(500, "Falha ao enviar e-mail de boas-vindas");
 

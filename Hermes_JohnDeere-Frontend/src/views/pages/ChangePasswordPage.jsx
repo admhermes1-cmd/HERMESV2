@@ -51,6 +51,10 @@ export default function ChangePasswordPage() {
     strength <= 1 ? styles.strengthWeak :
     strength <= 3 ? styles.strengthFair :
     strength <= 6 ? styles.strengthGood : styles.strengthStrong;
+  const strengthLabelVariant =
+    strength <= 2 ? styles.strengthLabelWeak :
+    strength <= 4 ? styles.strengthLabelFair :
+    strength <= 6 ? styles.strengthLabelGood : styles.strengthLabelStrong;
 
   // ── Formato do timer ──────────────────────────────────────────────────────
   const minutes = Math.floor(inactivityLeft / 60);
@@ -227,7 +231,7 @@ export default function ChangePasswordPage() {
                     aria-valuemax={100}
                   />
                 </div>
-                <span className={`${styles.strengthLabel} ${strengthVariant}`}>
+                <span className={`${styles.strengthLabel} ${strengthLabelVariant}`}>
                   {strengthLabel}
                 </span>
               </div>
