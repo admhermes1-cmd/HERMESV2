@@ -46,7 +46,7 @@ public record UserResponseDTO(
                 user.getRole().name(),
                 user.getApiKey(),
                 user.isActive(),
-                user.getMustChangePassword(),
+                user.isMustChangePassword(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
