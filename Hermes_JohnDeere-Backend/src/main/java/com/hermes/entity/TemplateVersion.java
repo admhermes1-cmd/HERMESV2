@@ -142,4 +142,18 @@ public class TemplateVersion {
     protected void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
+
+    public TemplateVersion(UUID id, Template template, Integer versionNumber,
+                       String subject, String body, List<String> variables,
+                       boolean active, LocalDateTime createdAt) {
+        this.id = id;
+        this.template = template;
+        this.versionNumber = versionNumber;
+        this.subject = subject;
+        this.body = body;
+        this.variables = variables;
+        this.active = active;
+        this.createdAt = createdAt;
+    }
+    
 }
