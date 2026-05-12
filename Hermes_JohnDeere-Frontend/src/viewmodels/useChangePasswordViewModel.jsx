@@ -83,6 +83,12 @@ export function useChangePasswordViewModel() {
   const [inactivityLeft, setInactivityLeft] = useState(INACTIVITY_TIMEOUT_MS / 1000);
   const inactivityRef = useRef(null);
   const countdownRef  = useRef(null);
+  const logoutRef     = useRef(logout);
+  const navigateRef   = useRef(navigate);
+
+  // Mantém as refs atualizadas sem recriar o callback do timer
+  useEffect(() => { logoutRef.current  = logout;   }, [logout]);
+  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
 
   const resetInactivity = useCallback(() => {
     clearTimeout(inactivityRef.current);
@@ -100,10 +106,10 @@ export function useChangePasswordViewModel() {
     }, 1000);
 
     inactivityRef.current = setTimeout(async () => {
-      await logout();
-      navigate(ROUTES.LOGIN, { replace: true });
+      await logoutRef.current();
+      navigateRef.current(ROUTES.LOGIN, { replace: true });
     }, INACTIVITY_TIMEOUT_MS);
-  }, [logout, navigate]);
+  }, []); // sem dependências — usa sempre as refs atualizadas
 
   useEffect(() => {
     const events = ['mousemove', 'keydown', 'click', 'touchstart'];
