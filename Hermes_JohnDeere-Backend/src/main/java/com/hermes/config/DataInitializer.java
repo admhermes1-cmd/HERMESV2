@@ -123,7 +123,7 @@ public class DataInitializer implements ApplicationRunner {
                 .password(passwordEncoder.encode(adminPassword))
                 .role(UserRole.ADMIN)
                 // Admin ativo imediatamente, sem necessidade de confirmação.
-                .isActive(true)
+                .Active(true)
                 // apiKey é gerada automaticamente no @PrePersist da entidade User.
                 .build();
 
