@@ -253,7 +253,7 @@ public class TemplateService {
                 .subject(request.getSubject())
                 .body(request.getBody())
                 .variables(request.getVariables())
-                .Active(true)
+                .active(true)
                 .createdAt(LocalDateTime.now())
                 .build();
 
