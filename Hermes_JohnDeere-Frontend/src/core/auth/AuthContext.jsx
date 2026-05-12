@@ -58,14 +58,14 @@ const REFRESH_MARGIN_MS = 60_000; // 1 minuto antes de expirar
 // ─── Contexto ────────────────────────────────────────────────────────────────
 /**
  * @typedef {Object} AuthContextShape
- * @property {import('@/models/User').User | null} user        - Usuário autenticado ou null.
- * @property {string | null}                       token       - Access token JWT em memória (leitura via getAccessToken()).
+ * @property {import('@/models/User').User | null} user            - Usuário autenticado ou null.
+ * @property {string | null}                       token           - Access token JWT em memória (leitura via getAccessToken()).
  * @property {boolean}                             isAuthenticated - true se há usuário e token válidos.
- * @property {boolean}                             isLoading   - true durante a verificação inicial de sessão (evita flash de login).
- * @property {string | null}                       error       - Mensagem do último erro de autenticação, ou null.
- * @property {(email: string, password: string) => Promise<void>} login - Realiza o login.
- * @property {() => Promise<void>}                 logout      - Realiza o logout e limpa todo estado.
- * @property {() => void}                          clearError  - Limpa o estado de erro.
+ * @property {boolean}                             isLoading       - true durante a verificação inicial de sessão (evita flash de login).
+ * @property {string | null}                       error           - Mensagem do último erro de autenticação, ou null.
+ * @property {(email: string, password: string) => Promise<import('@/models/User').User>} login - Realiza o login e retorna o User populado.
+ * @property {() => Promise<void>}                 logout          - Realiza o logout e limpa todo estado.
+ * @property {() => void}                          clearError      - Limpa o estado de erro.
  */
 
 /**
@@ -258,12 +258,19 @@ export function AuthProvider({ children }) {
 
   /**
    * Realiza o login com e-mail e senha.
-   * Em caso de sucesso, popula usuário e token no contexto.
-   * Em caso de falha, armazena a mensagem de erro em `error`.
+   *
+   * Em caso de sucesso, popula usuário e token no contexto e retorna o objeto
+   * User já construído — permitindo que o chamador (ex: useLoginViewModel) leia
+   * `mustChangePassword` de forma determinística, sem depender do timing de
+   * atualização do React state.
+   *
+   * Em caso de falha, armazena a mensagem de erro em `error` e relança a
+   * exceção para que o chamador possa tratá-la (ex: exibir mensagem na tela).
    *
    * @param {string} email
    * @param {string} password
-   * @returns {Promise<void>}
+   * @returns {Promise<import('@/models/User').User>} O usuário autenticado.
+   * @throws {Error} Relança o erro original em caso de falha na autenticação.
    */
   const login = useCallback(async (email, password) => {
     setError(null);
@@ -271,8 +278,14 @@ export function AuthProvider({ children }) {
     try {
       const { user: userData, token: newToken } = await authService.login({ email, password });
       _storeToken(newToken);
-      setUser(createUser(userData));
+
+      // Constrói o User via factory antes de persistir no state — o retorno
+      // garante que o chamador leia mustChangePassword sem aguardar re-render.
+      const userObj = createUser(userData);
+      setUser(userObj);
       _scheduleRefresh(newToken);
+
+      return userObj;
     } catch (err) {
       const message =
         err?.response?.data?.message ||
