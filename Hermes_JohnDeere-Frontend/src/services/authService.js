@@ -57,4 +57,5 @@ export const authService = {
   logout,
   refreshToken,
   getMe,
+  changePassword,
 }
