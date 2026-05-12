@@ -25,8 +25,14 @@ import java.util.UUID;
  * no corpo do template no formato {@code {{nomeDaVariavel}}}. A detecção é feita pelo serviço
  * na criação/edição; aqui apenas persiste o resultado como JSON.</p>
  *
- * <p><strong>Lombok:</strong> {@code @Getter}, {@code @Setter}, {@code @Builder},
- * {@code @NoArgsConstructor} e {@code @AllArgsConstructor} gerados em tempo de compilação.</p>
+ * <p><strong>Lombok:</strong> {@code @Getter}, {@code @Setter} e {@code @Builder}
+ * gerados em tempo de compilação. {@code @AllArgsConstructor} é omitido
+ * intencionalmente — o uso de {@code @Builder.Default} em campos booleanos/coleções
+ * é incompatível com construtores gerados pelo Lombok quando ambos coexistem.</p>
+ *
+ * <p><strong>Convenção de campos booleanos:</strong> campos booleanos primitivos NÃO devem
+ * ter prefixo {@code is} no nome — o Lombok geraria getters como {@code isIsActive()}.
+ * Use {@code active} para que o Lombok gere corretamente {@code isActive()}.</p>
  */
 @Entity
 @Table(
@@ -46,7 +52,6 @@ import java.util.UUID;
 @Setter
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
 public class TemplateVersion {
 
     // ─── Chave primária ───────────────────────────────────────────────────────
@@ -81,7 +86,7 @@ public class TemplateVersion {
     // ─── Conteúdo ─────────────────────────────────────────────────────────────
 
     /**
-     * Assunto da mensagem — obrigatório para o canal {@link NotificationChannel#EMAIL},
+     * Assunto da mensagem — obrigatório para o canal EMAIL,
      * ignorado/nulo para SMS e WhatsApp.
      */
     @Column
@@ -111,12 +116,13 @@ public class TemplateVersion {
 
     /**
      * Indica se esta versão está ativa e disponível para uso em novas notificações.
-     * Apenas uma versão ativa por template é a "versão corrente"; versões anteriores
-     * podem ser mantidas ativas para reenvio de notificações antigas.
+     *
+     * <p>Nome do campo: {@code active} (sem prefixo {@code is}) para que o Lombok
+     * gere corretamente {@code isActive()} — evita o getter duplo {@code isIsActive()}.</p>
      */
     @Builder.Default
     @Column(name = "is_active", nullable = false)
-    private boolean isActive = true;
+    private boolean active = true;
 
     // ─── Auditoria ────────────────────────────────────────────────────────────
 
