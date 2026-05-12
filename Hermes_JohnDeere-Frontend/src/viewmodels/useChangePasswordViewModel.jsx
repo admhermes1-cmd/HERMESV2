@@ -60,7 +60,7 @@ const CHARSET = {
  */
 export function useChangePasswordViewModel() {
   const navigate  = useNavigate();
-  const { logout } = useAuth();
+  const { logout, updateUser } = useAuth();
 
   // ── Campos ───────────────────────────────────────────────────────────────
   const [currentPassword,  setCurrentPassword]  = useState('');
@@ -294,8 +294,9 @@ export function useChangePasswordViewModel() {
   }, [newPassword]);
 
   const handleConfirm = useCallback(() => {
-    navigate(ROUTES.DASHBOARD, { replace: true });
-  }, [navigate]);
+  updateUser({ mustChangePassword: false });
+  navigate(ROUTES.DASHBOARD, { replace: true });
+}, [navigate, updateUser]);
 
   return {
     step,

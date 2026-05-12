@@ -68,6 +68,8 @@ import { UserRole } from '@/models/User';
  * @property {() => void} clearError
  *   Reseta o campo `error` para null.
  *   Útil ao fechar toasts/alertas de erro de login.
+ * 
+ * @property {(partialData: Partial<import('@/models/User').User>) => void} updateUser
  */
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -117,5 +119,6 @@ export function useAuth() {
     login:      context.login,
     logout:     context.logout,
     clearError: context.clearError,
+    updateUser: context.updateUser,
   };
 }

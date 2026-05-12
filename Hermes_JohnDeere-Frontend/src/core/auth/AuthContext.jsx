@@ -317,6 +317,10 @@ export function AuthProvider({ children }) {
     }
   }, [_clearSession]);
 
+  const updateUser = useCallback((partialData) => {
+  setUser(prev => prev ? { ...prev, ...partialData } : prev);
+  }, []);
+
   /**
    * Limpa a mensagem de erro atual.
    * Útil para resetar o estado após o usuário dispensar uma notificação de erro.
@@ -330,13 +334,14 @@ export function AuthProvider({ children }) {
   /** @type {AuthContextShape} */
   const contextValue = {
     user,
-    token,           // espelho em state — use getAccessToken() no apiClient
+    token,
     isAuthenticated: Boolean(user && token),
     isLoading,
     error,
     login,
     logout,
     clearError,
+    updateUser,
   };
 
   return (
