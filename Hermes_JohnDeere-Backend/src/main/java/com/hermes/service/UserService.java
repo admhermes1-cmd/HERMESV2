@@ -66,11 +66,11 @@ public class UserService {
         Page<User> users;
 
         if (role != null && isActive != null) {
-            users = userRepository.findByRoleAndIsActive(role, isActive, pageable);
+            users = userRepository.findByRoleAndActive(role, isActive, pageable);
         } else if (role != null) {
             users = userRepository.findByRole(role, pageable);
         } else if (isActive != null) {
-            users = userRepository.findByIsActive(isActive, pageable);
+            users = userRepository.findByActive(isActive, pageable);
         } else {
             users = userRepository.findAll(pageable);
         }
@@ -252,35 +252,17 @@ public class UserService {
     // Auxiliares privados
     // -------------------------------------------------------------------------
 
-    /**
-     * Busca um usuário pelo id ou lança {@link AppException} com código {@code USER_NOT_FOUND}.
-     *
-     * @param id identificador do usuário.
-     * @return entidade {@link User}.
-     */
     private User findUserOrThrow(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(AppException::userNotFound);
     }
 
-    /**
-     * Verifica se o e-mail já está em uso por outro usuário.
-     *
-     * @param email e-mail a verificar.
-     * @throws AppException {@code USER_EMAIL_DUPLICATE} se já existir registro com o mesmo e-mail.
-     */
     private void validateEmailUnique(String email) {
         if (userRepository.existsByEmail(email)) {
             throw AppException.userEmailDuplicate();
         }
     }
 
-    /**
-     * Gera uma senha aleatória de {@value #PASSWORD_LENGTH} caracteres
-     * usando {@link SecureRandom} para garantir entropia adequada.
-     *
-     * @return senha em texto puro (não codificada).
-     */
     private String generateRandomPassword() {
         SecureRandom random = new SecureRandom();
         StringBuilder sb = new StringBuilder(PASSWORD_LENGTH);
@@ -292,16 +274,6 @@ public class UserService {
         return sb.toString();
     }
 
-    /**
-     * Envia o e-mail de boas-vindas com a senha gerada, absorvendo falhas de SMTP
-     * para não interromper a transação principal.
-     *
-     * <p>Em produção, considere persistir a senha temporária em fila de mensagens
-     * (ex.: Outbox Pattern) para garantir entrega mesmo em falhas transitórias.</p>
-     *
-     * @param user        usuário destinatário.
-     * @param rawPassword senha em texto puro recém-gerada.
-     */
     private void sendWelcomeEmailSafely(User user, String rawPassword) {
         try {
             emailService.sendWelcomeEmail(user.getEmail(), user.getName(), rawPassword);
@@ -313,9 +285,6 @@ public class UserService {
                 e.getCause() != null ? e.getCause().getMessage() : "nenhuma",
                 e
             );
-
-            // NÃO relança — usuário já foi criado com sucesso.
-            // Remover este bloco após identificar a causa.
         }
     }
 }
