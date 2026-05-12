@@ -44,12 +44,12 @@ export default function ChangePasswordPage() {
   // ── Strength meter ────────────────────────────────────────────────────────
   const strengthPercent = Math.round((strength / rules.length) * 100);
   const strengthLabel =
-    strength <= 2 ? 'Fraca' :
-    strength <= 4 ? 'Razoável' :
+    strength <= 1 ? 'Fraca' :
+    strength <= 3 ? 'Razoável' :
     strength <= 6 ? 'Boa' : 'Forte';
   const strengthVariant =
-    strength <= 2 ? styles.strengthWeak :
-    strength <= 4 ? styles.strengthFair :
+    strength <= 1 ? styles.strengthWeak :
+    strength <= 3 ? styles.strengthFair :
     strength <= 6 ? styles.strengthGood : styles.strengthStrong;
 
   // ── Formato do timer ──────────────────────────────────────────────────────
