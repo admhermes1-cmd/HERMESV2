@@ -137,6 +137,26 @@ public class Notification {
         this.createdAt = LocalDateTime.now();
     }
 
+    public Notification(UUID id, NotificationChannel channel, NotificationStatus status,
+                    UUID templateId, UUID templateVersionId, RecipientsData recipients,
+                    Map<String, String> variables, List<AttachmentMetadata> attachments,
+                    LocalDateTime scheduledAt, LocalDateTime sentAt, String error,
+                    UUID createdBy, LocalDateTime createdAt) {
+        this.id = id;
+        this.channel = channel;
+        this.status = status;
+        this.templateId = templateId;
+        this.templateVersionId = templateVersionId;
+        this.recipients = recipients;
+        this.variables = variables;
+        this.attachments = attachments;
+        this.scheduledAt = scheduledAt;
+        this.sentAt = sentAt;
+        this.error = error;
+        this.createdBy = createdBy;
+        this.createdAt = createdAt;
+    }
+
     // ─── Records internos ────────────────────────────────────────────────────
 
     @JsonIgnoreProperties(ignoreUnknown = true)
