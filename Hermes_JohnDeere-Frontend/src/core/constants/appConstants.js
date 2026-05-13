@@ -35,6 +35,12 @@ export const API = Object.freeze({
   MAX_PAGE_SIZE: 100,
 });
 
+export const ENDPOINTS = Object.freeze({
+  USERS: Object.freeze({
+    BULK_IMPORT: '/api/v1/users/bulk-import',
+  }),
+});
+
 // ---------------------------------------------------------------------------
 // PAGINATION
 // ---------------------------------------------------------------------------

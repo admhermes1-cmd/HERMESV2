@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, RefreshCw, Trash2, Pencil, KeyRound } from 'lucide-react';
+import { UserPlus, RefreshCw, Trash2, Pencil, KeyRound, Upload } from 'lucide-react';
 import { useUserListViewModel } from '../../viewmodels/useUserListViewModel';
 import Button from '../components/common/Button';
 import Badge from '../components/common/Badge';
 import Table from '../components/common/Table';
 import Modal from '../components/common/Modal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import UserImportModal from '../components/UserImportModal';
 import { ROUTES } from '../../core/constants/appConstants';
 import { formatDate } from '../../utils/Formatters';
 import styles from './UsersPage.module.css';
@@ -47,6 +49,16 @@ export default function UsersPage() {
     handleResetConfirm,
     handleResetCancel,
   } = useUserListViewModel();
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  /**
+   * Chamado pelo modal após importação com ao menos 1 sucesso.
+   * Redireciona para a listagem de usuários para exibir os novos registros.
+   */
+  const handleImportSuccess = () => {
+    navigate('/users');
+  };
 
   // -------------------------------------------------------------------------
   // Definição de colunas da tabela
@@ -137,13 +149,25 @@ export default function UsersPage() {
             {isLoading ? 'Carregando…' : `${totalItems} usuário${totalItems !== 1 ? 's' : ''} encontrado${totalItems !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Button
-          variant="primary"
-          icon={UserPlus}
-          onClick={() => navigate(ROUTES.USER_NEW)}
-        >
-          Novo usuário
-        </Button>
+
+        <div className={styles.headerActions}>
+          <Button
+            variant="secondary"
+            onClick={() => setIsImportModalOpen(true)}
+            icon={<Upload size={15} />}
+            aria-label="Importar usuários em massa via CSV ou JSON"
+          >
+            Importar em Massa
+          </Button>
+
+          <Button
+            variant="primary"
+            icon={UserPlus}
+            onClick={() => navigate(ROUTES.USER_NEW)}
+          >
+            Novo usuário
+          </Button>
+        </div>
       </header>
 
       {/* Filtros */}
@@ -283,6 +307,12 @@ export default function UsersPage() {
           Deseja continuar?
         </p>
       </Modal>
+
+      <UserImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={handleImportSuccess}
+      />
     </main>
   );
 }
