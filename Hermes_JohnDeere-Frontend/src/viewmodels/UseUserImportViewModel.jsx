@@ -20,16 +20,16 @@ import { ENDPOINTS } from "../core/constants/appConstants";
 
 /**
  * @typedef {Object} UseUserImportViewModel
- * @property {File|null}          selectedFile    - Arquivo selecionado pelo usuário
- * @property {boolean}            isLoading       - Estado de carregamento durante o upload
- * @property {string|null}        error           - Mensagem de erro global
- * @property {BulkImportResult|null} result       - Resultado consolidado da importação
- * @property {"idle"|"result"}    stage           - Etapa atual do fluxo do modal
- * @property {Function}           handleFileSelect - Callback para seleção de arquivo
- * @property {Function}           handleDrop       - Callback para drag-and-drop
- * @property {Function}           handleImport     - Dispara o upload e importação
- * @property {Function}           handleReset      - Volta ao estado inicial
- * @property {Function}           cancel           - Cancela requisição em voo
+ * @property {File|null}             selectedFile     - Arquivo selecionado pelo usuário
+ * @property {boolean}               isLoading        - Estado de carregamento durante o upload
+ * @property {string|null}           error            - Mensagem de erro global
+ * @property {BulkImportResult|null} result           - Resultado consolidado da importação
+ * @property {"idle"|"result"}       stage            - Etapa atual do fluxo do modal
+ * @property {Function}              handleFileSelect  - Callback para seleção de arquivo
+ * @property {Function}              handleDrop        - Callback para drag-and-drop
+ * @property {Function}              handleImport      - Dispara o upload e importação
+ * @property {Function}              handleReset       - Volta ao estado inicial
+ * @property {Function}              cancel            - Cancela requisição em voo
  */
 
 /**
@@ -37,6 +37,8 @@ import { ENDPOINTS } from "../core/constants/appConstants";
  *
  * Encapsula toda a lógica de seleção de arquivo, validação client-side,
  * envio multipart ao backend e gerenciamento do resultado parcial (partial-commit).
+ *
+ * Localização: src/viewmodels/useUserImportViewModel.js
  *
  * @returns {UseUserImportViewModel}
  */
@@ -59,17 +61,15 @@ export function useUserImportViewModel() {
    * @returns {string|null} Mensagem de erro ou null se válido
    */
   const validateFile = useCallback((file) => {
-    const ALLOWED_TYPES = ["text/csv", "application/json"];
     const ALLOWED_EXTENSIONS = [".csv", ".json"];
-    const MAX_SIZE_MB = 5;
-    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 
     const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-    if (!ALLOWED_EXTENSIONS.includes(ext) && !ALLOWED_TYPES.includes(file.type)) {
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
       return "Tipo de arquivo não suportado. Envie um arquivo .csv ou .json";
     }
     if (file.size > MAX_SIZE_BYTES) {
-      return `O arquivo excede o tamanho máximo de ${MAX_SIZE_MB} MB`;
+      return "O arquivo excede o tamanho máximo de 5 MB";
     }
     if (file.size === 0) {
       return "O arquivo está vazio";
@@ -88,14 +88,12 @@ export function useUserImportViewModel() {
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
       setSelectedFile(null);
       return;
     }
-
     setError(null);
     setSelectedFile(file);
   }, [validateFile]);
@@ -108,14 +106,12 @@ export function useUserImportViewModel() {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
       setSelectedFile(null);
       return;
     }
-
     setError(null);
     setSelectedFile(file);
   }, [validateFile]);
@@ -130,7 +126,6 @@ export function useUserImportViewModel() {
       return;
     }
 
-    // Cancela qualquer requisição anterior pendente
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
 
@@ -166,9 +161,7 @@ export function useUserImportViewModel() {
     }
   }, [selectedFile]);
 
-  /**
-   * Reseta o ViewModel para o estado inicial, permitindo nova importação.
-   */
+  /** Reseta o ViewModel para o estado inicial, permitindo nova importação. */
   const handleReset = useCallback(() => {
     setSelectedFile(null);
     setError(null);
@@ -176,9 +169,7 @@ export function useUserImportViewModel() {
     setStage("idle");
   }, []);
 
-  /**
-   * Cancela a requisição HTTP em voo (se houver).
-   */
+  /** Cancela a requisição HTTP em voo (se houver). */
   const cancel = useCallback(() => {
     abortControllerRef.current?.abort();
     setIsLoading(false);

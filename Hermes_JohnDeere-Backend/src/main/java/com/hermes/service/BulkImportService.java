@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hermes.dto.notification.BulkImportResultDTO;
 import com.hermes.dto.notification.BulkImportResultDTO.RowFailure;
 import com.hermes.dto.notification.UserImportRowDTO;
-import com.hermes.entity.enums.userRole;
+import com.hermes.entity.enums.UserRole;
 import com.hermes.entity.User;
 import com.hermes.repository.UserRepository;
 import jakarta.validation.ConstraintViolation;

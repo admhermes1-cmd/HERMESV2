@@ -2,7 +2,6 @@ import { useRef, useState, useCallback } from "react";
 import {
   Upload,
   FileText,
-  X,
   CheckCircle,
   AlertCircle,
   ChevronDown,
@@ -18,8 +17,8 @@ import styles from "./UserImportModal.module.css";
 
 /**
  * @typedef {Object} UserImportModalProps
- * @property {boolean}  isOpen   - Controla a visibilidade do modal
- * @property {Function} onClose  - Callback disparado ao fechar o modal
+ * @property {boolean}  isOpen      - Controla a visibilidade do modal
+ * @property {Function} onClose     - Callback disparado ao fechar o modal
  * @property {Function} [onSuccess] - Callback opcional chamado após importação com ao menos 1 sucesso
  */
 
@@ -28,10 +27,12 @@ import styles from "./UserImportModal.module.css";
  *
  * Apresenta duas etapas:
  * 1. **Seleção de arquivo** — drop zone + input file, com validação client-side
- * 2. **Resultado** — resumo consolidado com lista expandível de falhas por linha
+ * 2. **Resultado** — resumo consolidado com lista expansível de falhas por linha
  *
  * Toda lógica de estado, validação e requisição HTTP vive em {@link useUserImportViewModel}.
  * Este componente é uma View pura: apenas renderiza e delega eventos ao ViewModel.
+ *
+ * Localização: src/views/components/UserImportModal.jsx
  *
  * @param {UserImportModalProps} props
  */
@@ -49,8 +50,8 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
     cancel,
   } = useUserImportViewModel();
 
-  const fileInputRef            = useRef(null);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef                    = useRef(null);
+  const [isDragOver, setIsDragOver]     = useState(false);
   const [failuresOpen, setFailuresOpen] = useState(false);
 
   // ---------------------------------------------------------------------------
@@ -88,34 +89,36 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
   };
 
   // ---------------------------------------------------------------------------
-  // Template download
+  // Template download (client-side, sem request ao servidor)
   // ---------------------------------------------------------------------------
 
   const downloadCsvTemplate = () => {
-    const content = "name,email,role,password\nJoão Silva,joao@empresa.com,USER,\nMaria Souza,maria@empresa.com,MANAGER,senha123";
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href     = url;
-    link.download = "template_usuarios.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+    const content = [
+      "name,email,role,password",
+      "João Silva,joao@empresa.com,USER,",
+      "Maria Souza,maria@empresa.com,MANAGER,senha123",
+    ].join("\n");
+    triggerDownload(content, "template_usuarios.csv", "text/csv;charset=utf-8;");
   };
 
   const downloadJsonTemplate = () => {
     const content = JSON.stringify(
       [
-        { name: "João Silva", email: "joao@empresa.com", role: "USER",    password: "" },
-        { name: "Maria Souza", email: "maria@empresa.com", role: "ADMIN", password: "" },
+        { name: "João Silva",  email: "joao@empresa.com",  role: "USER",    password: "" },
+        { name: "Maria Souza", email: "maria@empresa.com", role: "MANAGER", password: "senha123" },
       ],
       null,
       2
     );
-    const blob = new Blob([content], { type: "application/json" });
+    triggerDownload(content, "template_usuarios.json", "application/json");
+  };
+
+  const triggerDownload = (content, filename, mimeType) => {
+    const blob = new Blob([content], { type: mimeType });
     const url  = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href     = url;
-    link.download = "template_usuarios.json";
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -124,7 +127,6 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
   // Render helpers
   // ---------------------------------------------------------------------------
 
-  /** Cabeçalho dinâmico conforme a etapa atual */
   const renderHeader = () => (
     <div className={styles.header}>
       <div className={styles.headerIcon}>
@@ -143,7 +145,6 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
     </div>
   );
 
-  /** Etapa 1: seleção de arquivo */
   const renderUploadStage = () => (
     <div className={styles.uploadStage}>
       {/* Drop zone */}
@@ -151,7 +152,11 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
         role="button"
         tabIndex={0}
         aria-label="Área de arrastar e soltar arquivo. Clique para selecionar."
-        className={`${styles.dropZone} ${isDragOver ? styles.dropZoneDragOver : ""} ${selectedFile ? styles.dropZoneHasFile : ""}`}
+        className={[
+          styles.dropZone,
+          isDragOver    ? styles.dropZoneDragOver : "",
+          selectedFile  ? styles.dropZoneHasFile  : "",
+        ].join(" ")}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
@@ -182,7 +187,8 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
           <div className={styles.dropPrompt}>
             <Upload size={28} className={styles.uploadIcon} aria-hidden="true" />
             <p className={styles.dropText}>
-              Arraste seu arquivo aqui ou <span className={styles.dropLink}>clique para selecionar</span>
+              Arraste seu arquivo aqui ou{" "}
+              <span className={styles.dropLink}>clique para selecionar</span>
             </p>
             <p className={styles.dropHint}>CSV ou JSON · Máximo 5 MB</p>
           </div>
@@ -245,7 +251,6 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
     </div>
   );
 
-  /** Etapa 2: resultado da importação */
   const renderResultStage = () => {
     if (!result) return null;
     const hasFailures = result.failureCount > 0;
@@ -279,7 +284,10 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
         {hasSuccess && hasFailures && (
           <div role="status" className={`${styles.statusBanner} ${styles.statusBannerWarning}`}>
             <AlertCircle size={16} aria-hidden="true" />
-            <span>Importação parcial: {result.successCount} criado(s), {result.failureCount} com falha(s).</span>
+            <span>
+              Importação parcial: {result.successCount} criado(s),{" "}
+              {result.failureCount} com falha(s).
+            </span>
           </div>
         )}
         {!hasSuccess && hasFailures && (
@@ -326,10 +334,6 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
       </div>
     );
   };
-
-  // ---------------------------------------------------------------------------
-  // Footer dinâmico
-  // ---------------------------------------------------------------------------
 
   const renderFooter = () => {
     if (stage === "result") {

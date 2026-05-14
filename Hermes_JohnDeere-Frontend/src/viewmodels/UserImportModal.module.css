@@ -1,5 +1,6 @@
 /* =============================================================================
    UserImportModal.module.css
+   Localização: src/views/components/UserImportModal.module.css
    CSS Module para o modal de importação em massa de usuários.
    Segue estritamente os design tokens do sistema HERMES (CSS custom properties).
    ============================================================================= */
@@ -94,9 +95,7 @@
   border-radius: var(--radius-lg);
   background-color: var(--color-surface-secondary, var(--color-background));
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
   outline: none;
 }
 
@@ -159,7 +158,7 @@
   margin: 0;
 }
 
-/* Preview (com arquivo) */
+/* Preview (com arquivo selecionado) */
 .filePreview {
   display: flex;
   align-items: center;
