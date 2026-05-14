@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hermes.dto.notification.BulkImportResultDTO;
 import com.hermes.dto.notification.BulkImportResultDTO.RowFailure;
 import com.hermes.dto.notification.UserImportRowDTO;
-import com.hermes.entity.enums.UserRole;
 import com.hermes.entity.User;
+import com.hermes.entity.enums.UserRole;
 import com.hermes.repository.UserRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -32,29 +32,31 @@ import java.util.Set;
  * <p><b>Fluxo por linha/objeto:</b></p>
  * <ol>
  *   <li>Deserialização e mapeamento para {@link UserImportRowDTO}</li>
- *   <li>Validação via Bean Validation (jakarta.validation)</li>
+ *   <li>Validação via Bean Validation</li>
  *   <li>Verificação de unicidade de e-mail no banco</li>
  *   <li>Criação e persistência do {@link User} (reutiliza {@link UserService#createUser})</li>
- *   <li>Disparo do e-mail de boas-vindas (reutiliza {@link NotificationService})</li>
+ *   <li>Disparo do e-mail de boas-vindas (reutiliza {@link EmailService#sendWelcomeEmail})</li>
  * </ol>
  *
  * <p>Erros em linhas individuais são coletados sem abortar o restante da importação
  * (estratégia partial-commit). O resultado consolidado é retornado ao controlador.</p>
+ *
+ * <p><b>Roles aceitas:</b> {@code ADMIN} e {@code USER} — conforme {@link UserRole}.</p>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BulkImportService {
 
-    private static final String CSV_DELIMITER = ",";
-    private static final int PASSWORD_BYTE_LENGTH = 16;
+    private static final String CSV_DELIMITER      = ",";
+    private static final int    PASSWORD_BYTE_LENGTH = 16;
 
-    private final UserRepository userRepository;
-    private final UserService userService;
-    private final NotificationService notificationService;
+    private final UserRepository  userRepository;
+    private final UserService     userService;
+    private final EmailService    emailService;
     private final PasswordEncoder passwordEncoder;
-    private final Validator validator;
-    private final ObjectMapper objectMapper;
+    private final Validator       validator;
+    private final ObjectMapper    objectMapper;
 
     // -------------------------------------------------------------------------
     // Public API
@@ -87,8 +89,7 @@ public class BulkImportService {
             throw e;
         } catch (Exception e) {
             log.error("Erro ao fazer o parse do arquivo de importação: {}", e.getMessage(), e);
-            throw new IllegalArgumentException(
-                    "Falha ao processar o arquivo: " + e.getMessage());
+            throw new IllegalArgumentException("Falha ao processar o arquivo: " + e.getMessage());
         }
 
         return processRows(rows);
@@ -100,6 +101,7 @@ public class BulkImportService {
 
     /**
      * Faz o parse de um arquivo CSV com cabeçalho obrigatório.
+     *
      * <p>Formato esperado (case-insensitive):</p>
      * <pre>name,email,role,password</pre>
      * <p>A coluna {@code password} é opcional; linhas sem ela terão senha gerada.</p>
@@ -115,18 +117,18 @@ public class BulkImportService {
                 throw new IllegalArgumentException("O arquivo CSV está vazio");
             }
 
-            String[] headers = normalizeCsvHeaders(headerLine.split(CSV_DELIMITER));
-            int nameIdx    = findRequiredColumn(headers, "name");
-            int emailIdx   = findRequiredColumn(headers, "email");
-            int roleIdx    = findRequiredColumn(headers, "role");
-            int passwordIdx = findOptionalColumn(headers, "password");
+            String[] headers    = normalizeCsvHeaders(headerLine.split(CSV_DELIMITER));
+            int nameIdx         = findRequiredColumn(headers, "name");
+            int emailIdx        = findRequiredColumn(headers, "email");
+            int roleIdx         = findRequiredColumn(headers, "role");
+            int passwordIdx     = findOptionalColumn(headers, "password");
 
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isBlank()) continue;
 
-                String[] cols = line.split(CSV_DELIMITER, -1);
-                String password = (passwordIdx >= 0 && passwordIdx < cols.length)
+                String[] cols    = line.split(CSV_DELIMITER, -1);
+                String password  = (passwordIdx >= 0 && passwordIdx < cols.length)
                         ? cols[passwordIdx].trim()
                         : null;
 
@@ -144,6 +146,7 @@ public class BulkImportService {
 
     /**
      * Faz o parse de um arquivo JSON contendo um array de objetos de usuário.
+     *
      * <p>Formato esperado:</p>
      * <pre>[{"name":"...","email":"...","role":"...","password":"..."}]</pre>
      */
@@ -163,15 +166,15 @@ public class BulkImportService {
      * Erros individuais são coletados; a operação continua para as demais linhas.
      */
     private BulkImportResultDTO processRows(List<UserImportRowDTO> rows) {
-        List<String> successfulUsers = new ArrayList<>();
-        List<RowFailure> failures     = new ArrayList<>();
+        List<String>     successfulUsers = new ArrayList<>();
+        List<RowFailure> failures        = new ArrayList<>();
 
         for (int i = 0; i < rows.size(); i++) {
-            int rowNumber = i + 1; // 1-based para o relatório
-            UserImportRowDTO dto = rows.get(i);
+            int rowNumber          = i + 1; // 1-based para o relatório
+            UserImportRowDTO dto   = rows.get(i);
 
             try {
-                // 1. Validação de Bean Validation
+                // 1. Bean Validation
                 Set<ConstraintViolation<UserImportRowDTO>> violations = validator.validate(dto);
                 if (!violations.isEmpty()) {
                     String reason = violations.stream()
@@ -182,13 +185,13 @@ public class BulkImportService {
                     continue;
                 }
 
-                // 2. Role válida
-                Role role;
+                // 2. Role válida — apenas ADMIN e USER existem em UserRole
+                UserRole role;
                 try {
-                    role = Role.valueOf(dto.role().toUpperCase());
+                    role = UserRole.valueOf(dto.role().toUpperCase());
                 } catch (IllegalArgumentException e) {
                     failures.add(new RowFailure(rowNumber, dto.email(),
-                            "Role inválida: '" + dto.role() + "'. Use ADMIN, MANAGER ou USER"));
+                            "Role inválida: '" + dto.role() + "'. Valores aceitos: ADMIN, USER"));
                     continue;
                 }
 
@@ -212,8 +215,14 @@ public class BulkImportService {
                         role
                 );
 
-                // 6. E-mail de boas-vindas (reutiliza NotificationService)
-                notificationService.sendWelcomeEmail(created, rawPassword);
+                // 6. E-mail de boas-vindas (reutiliza EmailService)
+                try {
+                    emailService.sendWelcomeEmail(created, rawPassword);
+                } catch (Exception emailEx) {
+                    // Falha no e-mail não deve reverter a criação do usuário
+                    log.warn("Importação em massa: usuário {} criado, mas falha ao enviar e-mail: {}",
+                            created.getEmail(), emailEx.getMessage());
+                }
 
                 successfulUsers.add(created.getEmail());
                 log.info("Importação em massa: usuário criado — {}", created.getEmail());
@@ -242,8 +251,8 @@ public class BulkImportService {
     private String[] normalizeCsvHeaders(String[] headers) {
         String[] normalized = new String[headers.length];
         for (int i = 0; i < headers.length; i++) {
-            normalized[i] = headers[i].trim().toLowerCase()
-                    .replace("\uFEFF", ""); // remove BOM se presente
+            // remove BOM (U+FEFF) presente em arquivos exportados pelo Excel
+            normalized[i] = headers[i].trim().toLowerCase().replace("\uFEFF", "");
         }
         return normalized;
     }
