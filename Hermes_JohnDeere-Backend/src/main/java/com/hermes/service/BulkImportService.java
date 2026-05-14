@@ -217,7 +217,7 @@ public class BulkImportService {
 
                 // 6. E-mail de boas-vindas (reutiliza EmailService)
                 try {
-                    emailService.sendWelcomeEmail(created, rawPassword);
+                    emailService.sendWelcomeEmail(created.getEmail(), created.getName(), rawPassword);
                 } catch (Exception emailEx) {
                     // Falha no e-mail não deve reverter a criação do usuário
                     log.warn("Importação em massa: usuário {} criado, mas falha ao enviar e-mail: {}",
