@@ -11,7 +11,7 @@ import {
   RotateCcw,
   Users,
 } from "lucide-react";
-import { useUserImportViewModel } from "../viewmodels/useUserImportViewModel";
+import { useUserImportViewModel } from "./useUserImportViewModel";
 import Modal from "../views/components/common/Modal";
 import Button from "../views/components/common/Button";
 import styles from "./UserImportModal.module.css";
@@ -106,7 +106,7 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
     const content = JSON.stringify(
       [
         { name: "João Silva", email: "joao@empresa.com", role: "USER",    password: "" },
-        { name: "Maria Souza", email: "maria@empresa.com", role: "MANAGER", password: "senha123" },
+        { name: "Maria Souza", email: "maria@empresa.com", role: "ADMIN", password: "" },
       ],
       null,
       2
