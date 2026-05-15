@@ -2,26 +2,24 @@ package com.hermes.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hermes.dto.notification.BulkImportResultDTO;
-import com.hermes.dto.notification.BulkImportResultDTO.RowFailure;
-import com.hermes.dto.notification.UserImportRowDTO;
-import com.hermes.entity.User;
+import com.hermes.dto.BulkImportResultDTO;
+import com.hermes.dto.BulkImportResultDTO.RowFailure;
+import com.hermes.dto.UserImportRowDTO;
+import com.hermes.dto.user.UserRequestDTO;
+import com.hermes.dto.user.UserResponseDTO;
 import com.hermes.entity.enums.UserRole;
 import com.hermes.repository.UserRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 
@@ -34,29 +32,30 @@ import java.util.Set;
  *   <li>Deserialização e mapeamento para {@link UserImportRowDTO}</li>
  *   <li>Validação via Bean Validation</li>
  *   <li>Verificação de unicidade de e-mail no banco</li>
- *   <li>Criação e persistência do {@link User} (reutiliza {@link UserService#createUser})</li>
- *   <li>Disparo do e-mail de boas-vindas (reutiliza {@link EmailService#sendWelcomeEmail})</li>
+ *   <li>Delegação ao {@link UserService#createUser(UserRequestDTO)}, que já encapsula
+ *       a persistência, geração de senha e envio do e-mail de boas-vindas</li>
  * </ol>
  *
  * <p>Erros em linhas individuais são coletados sem abortar o restante da importação
  * (estratégia partial-commit). O resultado consolidado é retornado ao controlador.</p>
  *
  * <p><b>Roles aceitas:</b> {@code ADMIN} e {@code USER} — conforme {@link UserRole}.</p>
+ *
+ * <p><b>Nota sobre senha:</b> a coluna {@code password} do arquivo é ignorada intencionalmente.
+ * O {@link UserService} sempre gera a senha internamente e a envia por e-mail, garantindo
+ * que o fluxo de boas-vindas seja idêntico ao da criação manual de usuários.</p>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BulkImportService {
 
-    private static final String CSV_DELIMITER      = ",";
-    private static final int    PASSWORD_BYTE_LENGTH = 16;
+    private static final String CSV_DELIMITER = ",";
 
-    private final UserRepository  userRepository;
-    private final UserService     userService;
-    private final EmailService    emailService;
-    private final PasswordEncoder passwordEncoder;
-    private final Validator       validator;
-    private final ObjectMapper    objectMapper;
+    private final UserRepository userRepository;
+    private final UserService    userService;
+    private final Validator      validator;
+    private final ObjectMapper   objectMapper;
 
     // -------------------------------------------------------------------------
     // Public API
@@ -67,7 +66,7 @@ public class BulkImportService {
      *
      * @param file Arquivo CSV ou JSON enviado pelo cliente
      * @return {@link BulkImportResultDTO} com o resumo completo da operação
-     * @throws IllegalArgumentException se o tipo de arquivo não for suportado
+     * @throws IllegalArgumentException se o tipo de arquivo não for suportado ou inválido
      */
     public BulkImportResultDTO importUsers(MultipartFile file) {
         String filename = file.getOriginalFilename() != null
@@ -104,7 +103,8 @@ public class BulkImportService {
      *
      * <p>Formato esperado (case-insensitive):</p>
      * <pre>name,email,role,password</pre>
-     * <p>A coluna {@code password} é opcional; linhas sem ela terão senha gerada.</p>
+     * <p>A coluna {@code password} é aceita no arquivo mas ignorada no processamento —
+     * o {@link UserService} sempre gera a senha internamente.</p>
      */
     private List<UserImportRowDTO> parseCsv(MultipartFile file) throws Exception {
         List<UserImportRowDTO> rows = new ArrayList<>();
@@ -117,18 +117,19 @@ public class BulkImportService {
                 throw new IllegalArgumentException("O arquivo CSV está vazio");
             }
 
-            String[] headers    = normalizeCsvHeaders(headerLine.split(CSV_DELIMITER));
-            int nameIdx         = findRequiredColumn(headers, "name");
-            int emailIdx        = findRequiredColumn(headers, "email");
-            int roleIdx         = findRequiredColumn(headers, "role");
-            int passwordIdx     = findOptionalColumn(headers, "password");
+            String[] headers = normalizeCsvHeaders(headerLine.split(CSV_DELIMITER));
+            int nameIdx      = findRequiredColumn(headers, "name");
+            int emailIdx     = findRequiredColumn(headers, "email");
+            int roleIdx      = findRequiredColumn(headers, "role");
+            // password é opcional e ignorado no processamento, mas aceito no arquivo
+            int passwordIdx  = findOptionalColumn(headers, "password");
 
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isBlank()) continue;
 
-                String[] cols    = line.split(CSV_DELIMITER, -1);
-                String password  = (passwordIdx >= 0 && passwordIdx < cols.length)
+                String[] cols   = line.split(CSV_DELIMITER, -1);
+                String password = (passwordIdx >= 0 && passwordIdx < cols.length)
                         ? cols[passwordIdx].trim()
                         : null;
 
@@ -162,7 +163,7 @@ public class BulkImportService {
     // -------------------------------------------------------------------------
 
     /**
-     * Itera as linhas deserializadas, valida, persiste e dispara e-mails.
+     * Itera as linhas deserializadas, valida e delega a criação ao {@link UserService}.
      * Erros individuais são coletados; a operação continua para as demais linhas.
      */
     private BulkImportResultDTO processRows(List<UserImportRowDTO> rows) {
@@ -170,8 +171,8 @@ public class BulkImportService {
         List<RowFailure> failures        = new ArrayList<>();
 
         for (int i = 0; i < rows.size(); i++) {
-            int rowNumber          = i + 1; // 1-based para o relatório
-            UserImportRowDTO dto   = rows.get(i);
+            int rowNumber        = i + 1; // 1-based para o relatório
+            UserImportRowDTO dto = rows.get(i);
 
             try {
                 // 1. Bean Validation
@@ -195,37 +196,25 @@ public class BulkImportService {
                     continue;
                 }
 
-                // 3. Unicidade de e-mail
+                // 3. Unicidade de e-mail (verificação antecipada para erro descritivo)
                 if (userRepository.existsByEmail(dto.email().toLowerCase())) {
                     failures.add(new RowFailure(rowNumber, dto.email(),
                             "E-mail já cadastrado no sistema"));
                     continue;
                 }
 
-                // 4. Senha — usa a fornecida ou gera uma aleatória segura
-                String rawPassword = (dto.password() != null && !dto.password().isBlank())
-                        ? dto.password()
-                        : generateSecurePassword();
-
-                // 5. Criação do usuário (reutiliza UserService)
-                User created = userService.createUser(
+                // 4. Delega ao UserService — ele gera a senha, persiste e envia o e-mail
+                UserRequestDTO userRequest = new UserRequestDTO(
                         dto.name().trim(),
                         dto.email().trim().toLowerCase(),
-                        rawPassword,
-                        role
+                        role,
+                        true  // isActive = true por padrão na importação
                 );
 
-                // 6. E-mail de boas-vindas (reutiliza EmailService)
-                try {
-                    emailService.sendWelcomeEmail(created.getEmail(), created.getName(), rawPassword);
-                } catch (Exception emailEx) {
-                    // Falha no e-mail não deve reverter a criação do usuário
-                    log.warn("Importação em massa: usuário {} criado, mas falha ao enviar e-mail: {}",
-                            created.getEmail(), emailEx.getMessage());
-                }
+                UserResponseDTO created = userService.createUser(userRequest);
 
-                successfulUsers.add(created.getEmail());
-                log.info("Importação em massa: usuário criado — {}", created.getEmail());
+                successfulUsers.add(created.email());
+                log.info("Importação em massa: usuário criado — {}", created.email());
 
             } catch (Exception e) {
                 log.error("Importação em massa: falha na linha {} ({}): {}",
@@ -275,11 +264,5 @@ public class BulkImportService {
     private String safeGet(String[] cols, int index) {
         if (index < 0 || index >= cols.length) return "";
         return cols[index].trim();
-    }
-
-    private String generateSecurePassword() {
-        byte[] bytes = new byte[PASSWORD_BYTE_LENGTH];
-        new SecureRandom().nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }
