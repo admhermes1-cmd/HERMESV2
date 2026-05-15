@@ -2,9 +2,9 @@ package com.hermes.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hermes.dto.BulkImportResultDTO;
-import com.hermes.dto.BulkImportResultDTO.RowFailure;
-import com.hermes.dto.UserImportRowDTO;
+import com.hermes.dto.notification.BulkImportResultDTO;
+import com.hermes.dto.notification.BulkImportResultDTO.RowFailure;
+import com.hermes.dto.notification.UserImportRowDTO;
 import com.hermes.dto.user.UserRequestDTO;
 import com.hermes.dto.user.UserResponseDTO;
 import com.hermes.entity.enums.UserRole;
