@@ -1,0 +1,67 @@
+/* ─── Base ──────────────────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-weight: 500;
+  border-radius: var(--border-radius-sm);
+  white-space: nowrap;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  user-select: none;
+}
+
+/* ─── Tamanhos ───────────────────────────────────────────────────────────── */
+
+.sm {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+}
+
+.md {
+  font-size: var(--font-size-sm);
+  padding: 3px 8px;
+}
+
+.lg {
+  font-size: var(--font-size-base);
+  padding: 4px 12px;
+}
+
+/* ─── Variantes de cor ───────────────────────────────────────────────────── */
+
+.success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.warning {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.neutral {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* ─── Dot indicator ──────────────────────────────────────────────────────── */
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}

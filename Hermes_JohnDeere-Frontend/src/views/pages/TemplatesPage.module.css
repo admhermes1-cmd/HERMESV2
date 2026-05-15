@@ -1,0 +1,413 @@
+/* ============================================================
+   TemplatesPage.module.css
+   Estilos da página de listagem de templates — HERMES
+   ============================================================ */
+
+/* ── Layout geral da página ─────────────────────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* ── Banners de feedback ─────────────────────────────────────── */
+.bannerError {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid var(--color-error);
+  border-radius: var(--border-radius-md);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.bannerSuccess {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid var(--color-success);
+  border-radius: var(--border-radius-md);
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+
+  /* Escondido por padrão — transição de opacidade */
+  opacity: 0;
+  pointer-events: none;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: calc(-1 * var(--spacing-lg));
+  overflow: hidden;
+  transition:
+    opacity 0.25s ease,
+    max-height 0.3s ease,
+    padding 0.3s ease,
+    margin 0.3s ease;
+}
+
+.bannerSuccessVisible {
+  opacity: 1;
+  pointer-events: auto;
+  max-height: 80px;
+  padding-top: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  margin-bottom: 0;
+}
+
+/* ── Header da página ────────────────────────────────────────── */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.pageHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.pageTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.pageSubtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  min-height: 1.25em; /* evita layout shift durante loading */
+}
+
+/* ── Barra de filtros ────────────────────────────────────────── */
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.filterIcon {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.filterLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filterSelect {
+  height: 34px;
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-width: 140px;
+  appearance: auto;
+}
+
+.filterSelect:hover {
+  border-color: var(--color-primary);
+}
+
+.filterSelect:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.15);
+}
+
+/* ── Wrapper da tabela (scroll horizontal em mobile) ─────────── */
+.tableWrapper {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Células da tabela ───────────────────────────────────────── */
+.nameCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.nameCellIcon {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.versionsCell {
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  padding: 1px 6px;
+}
+
+.dateCell {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* ── Botões de ação por linha ────────────────────────────────── */
+.actionsCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+  padding: 0;
+  color: var(--color-text-secondary);
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.iconBtnEdit:hover {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+.iconBtnEdit:active {
+  transform: scale(0.93);
+}
+
+.iconBtnDelete:hover {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: var(--color-error);
+}
+
+.iconBtnDelete:active {
+  transform: scale(0.93);
+}
+
+/* ── Paginação ───────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  padding: var(--spacing-sm) 0;
+}
+
+.pageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+  outline: none;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background-color: var(--color-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.pageBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pageIndicator {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  padding: 0 var(--spacing-xs);
+}
+
+.pageIndicator strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.limitLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  margin-left: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.limitSelect {
+  height: 34px;
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  appearance: auto;
+}
+
+.limitSelect:hover {
+  border-color: var(--color-primary);
+}
+
+.limitSelect:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.15);
+}
+
+/* ── Conteúdo do modal de exclusão ──────────────────────────── */
+.modalBody {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.modalTemplateName {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.modalWarning {
+  display: inline-block;
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ── Responsividade ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .page {
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pageHeader > button {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .filterBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filterSelect {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .pagination {
+    gap: var(--spacing-xs);
+  }
+
+  .limitLabel {
+    margin-left: 0;
+    margin-top: var(--spacing-xs);
+    width: 100%;
+  }
+
+  .limitSelect {
+    width: 100%;
+  }
+
+  .pageBtn {
+    padding: 0 var(--spacing-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .pageTitle {
+    font-size: var(--font-size-xl);
+  }
+}

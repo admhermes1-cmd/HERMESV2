@@ -1,0 +1,288 @@
+/* ═══════════════════════════════════════════════════════════════
+   LoginPage.module.css
+   Estilos escopados para a página de login do HERMES.
+   Todas as medidas usam as variáveis CSS globais de `global.css`.
+
+   ESTRATÉGIA DE ÍCONES:
+   Os ícones (Mail, Lock, Eye/EyeOff) são siblings do <input> dentro
+   de `.inputRow`, que é um flexbox com `align-items: center`. Isso
+   garante centralização vertical perfeita sem nenhum cálculo de
+   posição absoluta — o próprio algoritmo flex distribui os itens.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Container ──────────────────────────────────────────────────
+   Ocupa toda a altura do painel direito do AuthLayout e centraliza
+   o card vertical e horizontalmente.
+   ─────────────────────────────────────────────────────────────── */
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  box-sizing: border-box;
+}
+
+/* ── Card ────────────────────────────────────────────────────────
+   Superfície principal com sombra suave e cantos arredondados.
+   ─────────────────────────────────────────────────────────────── */
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  animation: cardReveal 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Cabeçalho ───────────────────────────────────────────────────
+   Logo mark, título e subtítulo centralizados.
+   ─────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  text-align: center;
+}
+
+.logoMark {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--border-radius-md);
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-xs);
+  box-shadow: 0 4px 14px rgba(54, 124, 43, 0.35);
+}
+
+.logoH {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-secondary);
+  line-height: 1;
+  letter-spacing: -0.5px;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ── Banner de erro global ───────────────────────────────────────
+   Exibido quando `error` não é null. Fade-in suave.
+   ─────────────────────────────────────────────────────────────── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: #fef2f2;
+  border: 1px solid var(--color-error);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  animation: bannerFadeIn 0.25s ease both;
+}
+
+@keyframes bannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.errorBannerIcon {
+  flex-shrink: 0;
+}
+
+/* ── Formulário ──────────────────────────────────────────────────
+   Coluna com espaçamento uniforme entre grupos de campo e botão.
+   ─────────────────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* ── Grupo de campo (label + inputRow) ───────────────────────────
+   Empilha verticalmente o label acima do inputRow.
+   ─────────────────────────────────────────────────────────────── */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+.required {
+  color: var(--color-error);
+  margin-left: 2px;
+}
+
+/* ── inputRow ────────────────────────────────────────────────────
+   NÚCLEO DO LAYOUT: flexbox horizontal com align-items: center.
+   Garante que ícone, input e toggle fiquem alinhados ao centro
+   vertical do elemento mais alto (o <input>), sem nenhum cálculo.
+
+   Estrutura:  [ .inputIcon ] [ .input (flex: 1) ] [ .passwordToggle? ]
+   ─────────────────────────────────────────────────────────────── */
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* overflow hidden garante que o input não "vaze" o border-radius */
+  overflow: hidden;
+}
+
+/* Foco: quando qualquer filho do inputRow recebe foco,
+   realçamos a borda do container inteiro. */
+.inputRow:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.12);
+}
+
+/* ── Ícone prefixado (Mail, Lock) ────────────────────────────────
+   Flexbox item: width fixo, centralizado pelo `align-items: center`
+   do pai. Nenhum posicionamento absoluto necessário.
+   ─────────────────────────────────────────────────────────────── */
+.inputIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  color: var(--color-text-secondary);
+  /* pointer-events none para não interceptar cliques */
+  pointer-events: none;
+}
+
+/* ── Input nativo ────────────────────────────────────────────────
+   flex: 1 para ocupar todo o espaço horizontal disponível.
+   Sem borda própria — a borda pertence ao .inputRow.
+   ─────────────────────────────────────────────────────────────── */
+.input {
+  flex: 1;
+  min-width: 0; /* evita overflow em containers estreitos */
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 10px var(--spacing-sm) 10px 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+/* ── Toggle de visibilidade da senha ─────────────────────────────
+   Último item do flexbox. Centralizado pelo `align-items: center`
+   do .inputRow, sem nenhum posicionamento absoluto.
+   ─────────────────────────────────────────────────────────────── */
+.passwordToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: color 0.15s ease;
+  padding: 0;
+}
+
+.passwordToggle:hover {
+  color: var(--color-text-primary);
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* ── Rodapé ──────────────────────────────────────────────────────
+   Mensagem discreta de aviso de acesso restrito.
+   ─────────────────────────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  margin-top: var(--spacing-xs);
+}
+
+.footerText {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  opacity: 0.75;
+  letter-spacing: 0.01em;
+}
+
+/* ── Responsividade ──────────────────────────────────────────────
+   Em telas pequenas o card ocupa largura total com padding reduzido.
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .container {
+    padding: var(--spacing-md);
+    align-items: flex-start;
+    padding-top: var(--spacing-2xl);
+  }
+
+  .card {
+    padding: var(--spacing-xl) var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .title {
+    font-size: var(--font-size-xl);
+  }
+}

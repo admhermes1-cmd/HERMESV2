@@ -1,0 +1,567 @@
+/* ==========================================================================
+   DashboardPage.module.css
+   Estilos da página Dashboard do sistema HERMES
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Layout da página
+   -------------------------------------------------------------------------- */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* --------------------------------------------------------------------------
+   Banner de erro global
+   -------------------------------------------------------------------------- */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: #fff5f5;
+  border: 1px solid var(--color-error);
+  border-left: 4px solid var(--color-error);
+  border-radius: var(--border-radius-md);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  animation: fadeInDown 0.3s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Header da página
+   -------------------------------------------------------------------------- */
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.headerTitle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.titleIcon {
+  color: var(--color-primary);
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.refreshIndicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: var(--spacing-xs);
+}
+
+.refreshIcon {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.refreshText {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Skeleton / shimmer loader
+   -------------------------------------------------------------------------- */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    #ebebeb 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--border-radius-sm);
+}
+
+.skeletonIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--border-radius-md);
+  flex-shrink: 0;
+}
+
+.skeletonContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  flex: 1;
+}
+
+.skeletonLabel {
+  height: 14px;
+  width: 60%;
+}
+
+.skeletonValue {
+  height: 28px;
+  width: 40%;
+}
+
+.skeletonRing {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: var(--spacing-md) auto;
+}
+
+.skeletonTotalValue {
+  height: 56px;
+  width: 55%;
+  margin: var(--spacing-lg) auto var(--spacing-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Grid de métricas
+   -------------------------------------------------------------------------- */
+.metricsSection {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-lg);
+}
+
+/* --------------------------------------------------------------------------
+   Cards de métrica
+   -------------------------------------------------------------------------- */
+.metricCard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+}
+
+.metricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Card com falhas > 0 */
+.metricCardHighlight {
+  border-left: 3px solid var(--color-error);
+}
+
+.metricIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--border-radius-md);
+  flex-shrink: 0;
+}
+
+.metricBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.metricLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.metricValue {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+}
+
+.metricDelta {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* Variantes de cor dos cards */
+.colorSuccess {
+  color: var(--color-success);
+  background-color: #f0fdf4;
+}
+
+.colorError {
+  color: var(--color-error);
+  background-color: #fff5f5;
+}
+
+.colorInfo {
+  color: var(--color-info);
+  background-color: #eff6ff;
+}
+
+.colorWarning {
+  color: var(--color-warning);
+  background-color: #fffbeb;
+}
+
+/* Ícone herda a cor do card mas sem o fundo colorido */
+.metricIcon.colorSuccess { background-color: #dcfce7; }
+.metricIcon.colorError   { background-color: #fee2e2; }
+.metricIcon.colorInfo    { background-color: #dbeafe; }
+.metricIcon.colorWarning { background-color: #fef9c3; }
+
+/* --------------------------------------------------------------------------
+   Seção de taxa de sucesso
+   -------------------------------------------------------------------------- */
+.rateSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+.rateCard,
+.totalCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-sm);
+}
+
+.rateCardHeader,
+.totalCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  align-self: flex-start;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* Anel SVG */
+.ringWrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.ringSvg {
+  display: block;
+}
+
+.ringCenter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringPercent {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rateLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* Total do dia */
+.totalValue {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+  margin-top: auto;
+}
+
+.totalLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  margin-bottom: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Seção de logs
+   -------------------------------------------------------------------------- */
+.logsSection {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.logsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.logsTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+}
+
+.logsBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.logsFilter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.filterLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.filterSelect {
+  appearance: none;
+  padding: 6px 28px 6px 10px;
+  background: var(--color-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(54, 124, 43, 0.15);
+}
+
+/* Wrapper com scroll horizontal para mobile */
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Destaque de linha ERROR */
+.logRowError {
+  background-color: #fff5f5 !important;
+}
+
+.logMessage {
+  display: block;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+}
+
+.logContext {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Paginação
+   -------------------------------------------------------------------------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.paginationBtn {
+  padding: 6px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background-color: var(--color-bg);
+}
+
+.paginationBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paginationInfo {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Animação de spin para ícone de refresh
+   -------------------------------------------------------------------------- */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE
+   ========================================================================== */
+
+/* Tablet (< 1024px) */
+@media (max-width: 1023px) {
+  .metricsSection {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rateSection {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile (< 640px) */
+@media (max-width: 639px) {
+  .page {
+    padding: var(--spacing-md);
+    gap: var(--spacing-lg);
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .headerActions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .headerActions > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .metricsSection {
+    grid-template-columns: 1fr;
+  }
+
+  .rateSection {
+    grid-template-columns: 1fr;
+  }
+
+  .logsHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logsFilter {
+    width: 100%;
+  }
+
+  .filterSelect {
+    flex: 1;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+}

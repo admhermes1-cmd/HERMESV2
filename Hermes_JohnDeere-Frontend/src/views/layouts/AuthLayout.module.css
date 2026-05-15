@@ -1,0 +1,184 @@
+/* ============================================================
+   AuthLayout.module.css
+   Layout de autenticação — dois painéis (brand | content)
+   ============================================================ */
+
+/* ── Root ─────────────────────────────────────────────────── */
+.root {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  overflow: hidden;
+}
+
+/* ── Painel esquerdo: branding ────────────────────────────── */
+.brandPanel {
+  position: relative;
+  width: 40%;
+  flex-shrink: 0;
+  background-color: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  overflow: hidden;
+}
+
+/* Conteúdo do branding centralizado verticalmente */
+.brandContent {
+  position: relative;
+  z-index: 1;
+  max-width: 320px;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.logoIcon {
+  color: var(--color-secondary);
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #fff;
+  line-height: 1;
+}
+
+/* Tagline */
+.tagline {
+  font-size: var(--font-size-lg);
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+/* Divisor */
+.brandDivider {
+  width: 48px;
+  height: 3px;
+  background-color: var(--color-secondary);
+  border-radius: 2px;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Lista de features */
+.featureList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.featureList li {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.75);
+  padding-left: var(--spacing-md);
+  position: relative;
+  line-height: 1.5;
+}
+
+.featureList li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-secondary);
+}
+
+/* Detalhe decorativo geométrico (canto inferior direito) */
+.brandDecor {
+  position: absolute;
+  bottom: -80px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 48px solid rgba(255, 222, 0, 0.12);
+  pointer-events: none;
+}
+
+.brandDecor::before {
+  content: '';
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+  bottom: 48px;
+  border-radius: 50%;
+  border: 24px solid rgba(255, 222, 0, 0.08);
+}
+
+/* ── Painel direito: conteúdo ─────────────────────────────── */
+.contentPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+  min-height: 100vh;
+}
+
+.contentInner {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+}
+
+/* Rodapé discreto */
+.footer {
+  text-align: center;
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* ── Responsividade ───────────────────────────────────────── */
+@media (max-width: 767px) {
+  .brandPanel {
+    display: none;
+  }
+
+  .contentPanel {
+    width: 100%;
+  }
+
+  .contentInner {
+    padding: var(--spacing-lg) var(--spacing-md);
+    align-items: flex-start;
+    padding-top: var(--spacing-2xl);
+  }
+}
+
+/* Tablet: reduz largura do painel de branding */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .brandPanel {
+    width: 35%;
+  }
+
+  .logoText {
+    font-size: 1.65rem;
+  }
+
+  .tagline {
+    font-size: var(--font-size-base);
+  }
+}

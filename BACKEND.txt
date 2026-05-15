@@ -1,0 +1,71 @@
+hermes-backend/
+│
+├── src/main/java/com/hermes/
+│   │
+│   ├── config/ -
+│   │   ├── SecurityConfig.java        # Spring Security + filtros JWT + CORS
+│   │   ├── MailConfig.java            # JavaMailSender com Gmail SMTP
+│   │   ├── OpenApiConfig.java         # Swagger/SpringDoc
+│   │   └── DataInitializer.java       # Seed do usuário admin fixo
+│   │
+│   ├── entity/ -
+│   │   ├── User.java                  # @Entity usuário
+│   │   ├── Template.java              # @Entity template
+│   │   ├── TemplateVersion.java       # @Entity versão do template
+│   │   ├── Notification.java          # @Entity notificação
+│   │   └── ScheduledMessage.java      # @Entity mensagem agendada
+│   │
+│   ├── dto/ -
+│   │   ├── auth/
+│   │   │   ├── LoginRequestDTO.java
+│   │   │   └── LoginResponseDTO.java
+│   │   ├── template/
+│   │   │   ├── TemplateRequestDTO.java
+│   │   │   ├── TemplateResponseDTO.java
+│   │   │   ├── TemplateVersionRequestDTO.java
+│   │   │   └── TemplateVersionResponseDTO.java
+│   │   ├── notification/
+│   │   │   ├── NotificationRequestDTO.java
+│   │   │   └── NotificationResponseDTO.java
+│   │   └── dashboard/
+│   │       ├── DashboardStatsDTO.java
+│   │       └── LogEntryDTO.java
+│   │
+│   ├── repository/ -
+│   │   ├── UserRepository.java
+│   │   ├── TemplateRepository.java
+│   │   ├── TemplateVersionRepository.java
+│   │   ├── NotificationRepository.java
+│   │   └── ScheduledMessageRepository.java
+│   │
+│   ├── service/ -
+│   │   ├── AuthService.java           # Login, geração e validação de JWT
+│   │   ├── TemplateService.java       # CRUD de templates e versões
+│   │   ├── NotificationService.java   # Criação, envio imediato e agendamento
+│   │   ├── EmailService.java          # Envio real via JavaMailSender + Gmail SMTP
+│   │   └── DashboardService.java      # Stats e logs
+│   │
+│   ├── controller/ -
+│   │   ├── AuthController.java        # POST /auth/login, /auth/logout, /auth/refresh, GET /auth/me
+│   │   ├── TemplateController.java    # CRUD /templates + /templates/{id}/versions
+│   │   ├── NotificationController.java # /notifications + cancel + retry
+│   │   └── DashboardController.java   # /dashboard/stats + /dashboard/logs
+│   │
+│   ├── security/ -
+│   │   ├── JwtUtil.java               # Geração, validação e parse de JWT
+│   │   ├── JwtAuthFilter.java         # Filtro que intercepta requests e valida token
+│   │   └── UserDetailsServiceImpl.java # Carrega usuário do banco para o Spring Security
+│   │
+│   ├── scheduler/ -
+│   │   └── NotificationScheduler.java # @Scheduled — processa mensagens agendadas
+│   │
+│   └── exception/
+│       ├── AppException.java          # Exception customizada com status HTTP
+│       ├── GlobalExceptionHandler.java # @ControllerAdvice — trata e formata erros
+│       └── ErrorResponseDTO.java      # Shape do erro retornado ao frontend
+│
+├── src/main/resources/
+│   ├── application.yml                # Config base
+│   └── application-dev.yml           # Config de desenvolvimento
+│
+└── pom.xml                            # Dependências Maven

@@ -1,0 +1,122 @@
+/* ─────────────────────────────────────────────
+   LoadingSpinner.module.css
+   Estilização do componente LoadingSpinner do HERMES.
+   Depende das variáveis CSS globais definidas em src/styles/global.css.
+   ───────────────────────────────────────────── */
+
+/* ── Animação ─────────────────────────────── */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Wrapper ──────────────────────────────── */
+
+/**
+ * Container padrão (inline):
+ * Centraliza o spinner + label no espaço disponível do pai.
+ */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+/**
+ * Variante fullscreen:
+ * Overlay fixo cobrindo 100% da viewport.
+ * Usado em PrivateRoute e Suspense fallback.
+ */
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 9999;
+}
+
+/**
+ * Variante overlay:
+ * Overlay absoluto cobrindo o container pai (requer pai com position relative).
+ * Usado para bloquear seções enquanto dados são carregados.
+ */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.75);
+  z-index: 10;
+}
+
+/* ── Spinner ──────────────────────────────── */
+
+/**
+ * Elemento visual do spinner:
+ * Círculo com borda superior colorida girando continuamente.
+ * A cor é injetada via custom property --spinner-color (definida inline no JSX).
+ */
+.spinner {
+  border-radius: 50%;
+  border-style: solid;
+  border-color: transparent;
+  border-top-color: var(--spinner-color, var(--color-primary));
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Tamanhos ─────────────────────────────── */
+
+/** Inline em botões — 16px, borda 2px */
+.sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+/** Padrão em seções — 32px, borda 3px */
+.md {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
+/** Páginas inteiras — 48px, borda 4px */
+.lg {
+  width: 48px;
+  height: 48px;
+  border-width: 4px;
+}
+
+/* ── Label visível ────────────────────────── */
+
+.label {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Acessibilidade ───────────────────────── */
+
+/**
+ * Padrão .srOnly:
+ * Oculta visualmente o texto sem removê-lo do fluxo de screen readers.
+ * Referência: https://www.a11yproject.com/posts/how-to-hide-content/
+ */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

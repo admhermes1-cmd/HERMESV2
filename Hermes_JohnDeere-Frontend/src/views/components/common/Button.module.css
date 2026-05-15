@@ -1,0 +1,191 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Button.module.css — HERMES Design System
+   Estilização completa do componente Button via CSS Modules.
+   Todas as variantes, tamanhos e estados estão definidos aqui.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── BASE ─────────────────────────────────────────────────────────────────── */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  text-decoration: none;
+
+  border: 2px solid transparent;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.1s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+
+  /* Evita que o botão "pule" ao receber outline de foco */
+  outline-offset: 2px;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* ── TAMANHOS ─────────────────────────────────────────────────────────────── */
+
+.sm {
+  font-size: var(--font-size-sm);
+  padding: 6px 12px;
+}
+
+.md {
+  font-size: var(--font-size-base);
+  padding: 8px 16px;
+}
+
+.lg {
+  font-size: var(--font-size-lg);
+  padding: 10px 24px;
+}
+
+/* ── VARIANTES ────────────────────────────────────────────────────────────── */
+
+/* Primary — ação principal, verde sólido */
+.primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.primary:hover:not([aria-disabled='true']) {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.primary:active:not([aria-disabled='true']) {
+  transform: scale(0.98);
+  background-color: var(--color-primary-dark);
+}
+
+/* Secondary — ação secundária, borda verde */
+.secondary {
+  background-color: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.secondary:hover:not([aria-disabled='true']) {
+  background-color: #f0faf0;
+}
+
+.secondary:active:not([aria-disabled='true']) {
+  background-color: #e0f5e0;
+}
+
+/* Danger — ação destrutiva, vermelho sólido */
+.danger {
+  background-color: var(--color-error);
+  border-color: var(--color-error);
+  color: #ffffff;
+}
+
+.danger:hover:not([aria-disabled='true']) {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.danger:active:not([aria-disabled='true']) {
+  transform: scale(0.98);
+  background-color: #991b1b;
+  border-color: #991b1b;
+}
+
+/* Ghost — ação terciária / cancelar, sem borda nem fundo */
+.ghost {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--color-text-secondary);
+}
+
+.ghost:hover:not([aria-disabled='true']) {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.ghost:active:not([aria-disabled='true']) {
+  background-color: var(--color-border);
+}
+
+/* ── MODIFICADORES ────────────────────────────────────────────────────────── */
+
+/* iconOnly — padding uniforme, sem gap */
+.iconOnly {
+  gap: 0;
+}
+
+.iconOnly.sm {
+  padding: 6px;
+}
+
+.iconOnly.md {
+  padding: 8px;
+}
+
+.iconOnly.lg {
+  padding: 10px;
+}
+
+/* fullWidth — ocupa toda a largura disponível */
+.fullWidth {
+  width: 100%;
+}
+
+/* ── ESTADOS ──────────────────────────────────────────────────────────────── */
+
+/* disabled — opaco e sem interação */
+.disabled,
+.button[aria-disabled='true']:not(.loading) {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* loading — cursor de espera; sem opacidade reduzida para não confundir com disabled */
+.loading {
+  cursor: wait;
+}
+
+/* Garante que o hover não se aplique durante loading */
+.loading:hover {
+  /* Mantém o estado visual atual sem transformações */
+  transform: none;
+}
+
+/* Especificidade: primary loading não altera o fundo no hover */
+.primary.loading:hover {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.secondary.loading:hover {
+  background-color: transparent;
+}
+
+.danger.loading:hover {
+  background-color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.ghost.loading:hover {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+}

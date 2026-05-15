@@ -1,0 +1,198 @@
+/* ─────────────────────────────────────────────
+   NotFoundPage.module.css
+   Página 404 standalone — sem layout pai.
+   Provê seu próprio fundo e centralização.
+───────────────────────────────────────────── */
+
+/* ── Wrapper principal ── */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+}
+
+/* ── Header mínimo ── */
+.header {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Logo ── */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--color-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.logo:hover,
+.logo:focus-visible {
+  opacity: 0.8;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--border-radius-sm);
+}
+
+/* ── Área central ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  gap: 0; /* gaps gerenciados via margin nos filhos */
+}
+
+/* ── Número 404 ── */
+.code {
+  font-size: clamp(6rem, 20vw, 12rem);
+  font-weight: 900;
+  line-height: 1;
+  margin: 0 0 var(--spacing-sm);
+  color: var(--color-primary);
+  /* Duplo text-shadow para efeito de profundidade */
+  text-shadow:
+    4px 4px 0px rgba(54, 124, 43, 0.15),
+    8px 8px 0px rgba(54, 124, 43, 0.07);
+  user-select: none;
+}
+
+/* ── Ícone MapPin ── */
+.mapIcon {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* ── Título ── */
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-sm);
+}
+
+/* ── Subtítulo ── */
+.subtitle {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  max-width: 480px;
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-xl);
+}
+
+/* ── Pathname em destaque ── */
+.pathname {
+  font-family: monospace;
+  font-size: 0.9em;
+  background-color: var(--color-border);
+  color: var(--color-text-primary);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-sm);
+  word-break: break-all;
+}
+
+/* ── Countdown ── */
+.countdownWrapper {
+  margin-bottom: var(--spacing-md);
+  min-height: 1.5rem; /* evita layout shift ao alternar mensagens */
+}
+
+.countdownText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.countdownText strong {
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Barra de progresso ── */
+.progressTrack {
+  width: 100%;
+  max-width: 320px;
+  height: 4px;
+  background-color: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-xl);
+}
+
+.progressFill {
+  height: 100%;
+  background-color: var(--color-primary);
+  border-radius: 999px;
+  /* transition controlada via inline style (width + duration dinâmicos) */
+  transform-origin: left center;
+}
+
+/* ── Botão principal ── */
+/* O componente Button já tem seus estilos próprios;
+   apenas adicionamos espaçamento contextual. */
+.main > :global(.button),        /* caso Button exponha classe global */
+.main button[class*="primary"] { /* fallback genérico */
+  margin-top: 0; /* gap já gerenciado pelo progressTrack margin-bottom */
+}
+
+/* ── Link de cancelar ── */
+.cancelLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--spacing-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.cancelLink:hover,
+.cancelLink:focus-visible {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  outline: 2px solid var(--color-border);
+  outline-offset: 3px;
+  border-radius: var(--border-radius-sm);
+}
+
+/* ── Responsividade ── */
+@media (max-width: 480px) {
+  .header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .main {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+
+  .title {
+    font-size: var(--font-size-xl);
+  }
+
+  .subtitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .progressTrack {
+    max-width: 260px;
+  }
+}

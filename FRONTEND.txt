@@ -1,0 +1,86 @@
+hermes-frontend/
+│
+├── public/
+│   └── favicon.ico
+│
+├── src/
+│   │
+│   ├── assets/                        # Imagens, fontes, ícones estáticos
+│   │
+│   ├── core/                          # Infraestrutura transversal
+│   │   ├── api/
+│   │   │   ├── apiClient.js           # Instância Axios/Fetch com interceptors
+│   │   │   └── apiEndpoints.js        # Constantes de endpoints da API
+│   │   ├── auth/
+│   │   │   ├── AuthContext.jsx        # Context de autenticação global
+│   │   │   └── useAuth.js             # Hook derivado do AuthContext
+│   │   ├── router/
+│   │   │   ├── AppRouter.jsx          # Definição de rotas com React Router
+│   │   │   └── PrivateRoute.jsx       # HOC/wrapper para rotas protegidas
+│   │   └── constants/
+│   │       └── appConstants.js        # Constantes globais da aplicação
+│   │
+│   ├── models/                        # MODEL — estruturas de dados puras (DTOs/schemas)
+│   │   ├── User.js
+│   │   ├── Template.js
+│   │   ├── Notification.js
+│   │   └── ScheduledMessage.js
+│   │
+│   ├── services/                      # MODEL — comunicação com a API (data layer)
+│   │   ├── authService.js             # Login, logout, refresh token
+│   │   ├── templateService.js         # CRUD de templates
+│   │   ├── notificationService.js     # Envio imediato e agendado
+│   │   └── dashboardService.js        # Logs, métricas, status de envios
+│   │
+│   ├── viewmodels/                    # VIEWMODEL — lógica de estado e negócio da UI
+│   │   ├── useLoginViewModel.js
+│   │   ├── useTemplateListViewModel.js
+│   │   ├── useTemplateFormViewModel.js
+│   │   ├── useNotificationFormViewModel.js
+│   │   └── useDashboardViewModel.js
+│   │
+│   ├── views/                         # VIEW — páginas e componentes visuais
+│   │   ├── layouts/
+│   │   │   ├── MainLayout.jsx         # Layout autenticado (sidebar + header)
+│   │   │   └── AuthLayout.jsx         # Layout para telas de login
+│   │   │
+│   │   ├── pages/
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── DashboardPage.jsx
+│   │   │   ├── TemplatesPage.jsx
+│   │   │   ├── TemplateFormPage.jsx   # Criar/Editar template (versões)
+│   │   │   ├── NotificationFormPage.jsx  # Envio/agendamento de comunicação
+│   │   │   └── NotFoundPage.jsx
+│   │   │
+│   │   └── components/                # Componentes reutilizáveis
+│   │       ├── common/
+│   │       │   ├── Button.jsx
+│   │       │   ├── InputField.jsx
+│   │       │   ├── Modal.jsx
+│   │       │   ├── Table.jsx
+│   │       │   ├── Badge.jsx          # Status dos envios (pendente/enviado/erro)
+│   │       │   └── LoadingSpinner.jsx
+│   │       ├── template/
+│   │       │   ├── TemplateCard.jsx
+│   │       │   └── TemplateVersionSelector.jsx
+│   │       └── notification/
+│   │           ├── RecipientInput.jsx # Para, CC, BCC
+│   │           └── SchedulePicker.jsx # Datepicker para agendamento
+│   │
+│   ├── styles/
+│   │   ├── global.css                 # Reset + variáveis CSS globais
+│   │   └── theme.js                   # Tokens de design (cores, tipografia)
+│   │
+│   ├── utils/
+│   │   ├── formatters.js              # Formatação de datas, bytes, strings
+│   │   └── validators.js              # Validação de e-mail, tamanho de anexos, etc.
+│   │
+│   ├── App.jsx                        # Raiz: providers + router
+│   └── main.jsx                       # Entry point Vite
+│
+├── .env.example                       # Variáveis de ambiente documentadas
+├── .eslintrc.cjs
+├── .gitignore
+├── index.html
+├── package.json
+└── vite.config.js

@@ -1,0 +1,174 @@
+/* ============================================================
+   RecipientInput.module.css
+   Estilos do campo de entrada de destinatários com chips/tags
+   ============================================================ */
+
+/* Container principal */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+/* Label */
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  user-select: none;
+}
+
+/* Asterisco de campo obrigatório */
+.required {
+  color: var(--color-error);
+  margin-left: 2px;
+}
+
+/* Área clicável que contém chips + input */
+.field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  align-items: center;
+  min-height: 42px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: var(--color-surface);
+  cursor: text;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.15);
+}
+
+/* Estado de erro externo */
+.fieldError {
+  border-color: var(--color-error);
+}
+
+.fieldError:focus-within {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+/* Campo desabilitado */
+.fieldDisabled {
+  background: var(--color-bg);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Chip / Tag ---- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f0faf0;
+  border: 1px solid #c3e6cb;
+  border-radius: var(--border-radius-lg);
+  padding: 2px 6px;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary-dark);
+  max-width: 200px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+/* Texto do e-mail dentro do chip — truncar se muito longo */
+.chipEmail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Botão de remoção dentro do chip */
+.chipRemove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: color 0.15s ease;
+  line-height: 1;
+}
+
+.chipRemove:hover {
+  color: var(--color-error);
+}
+
+.chipRemove:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.chipRemove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ---- Input interno ---- */
+.input {
+  border: none;
+  outline: none;
+  flex: 1;
+  min-width: 160px;
+  font-size: var(--font-size-base);
+  background: transparent;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  padding: 2px 0;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.input:disabled {
+  cursor: not-allowed;
+}
+
+/* ---- Mensagens ---- */
+
+/* Erro inline — validação do e-mail digitado */
+.inlineError {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  line-height: 1.4;
+}
+
+/* Erro externo — vindo do ViewModel */
+.externalError {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Hint de limite atingido */
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* Estado disabled no wrapper inteiro */
+.disabled .field {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.disabled .label {
+  opacity: 0.6;
+}

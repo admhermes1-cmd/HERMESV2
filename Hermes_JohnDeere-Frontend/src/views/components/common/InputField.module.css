@@ -1,0 +1,171 @@
+/* ─────────────────────────────────────────────
+   InputField.module.css
+   Estilos do componente InputField — HERMES
+───────────────────────────────────────────── */
+
+/* ── Wrapper externo ─────────────────────── */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* ── Label ───────────────────────────────── */
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.4;
+  user-select: none;
+}
+
+/* Asterisco de campo obrigatório */
+.required {
+  color: var(--color-error);
+  margin-left: 2px;
+}
+
+/* ── Container relativo (input + ícones) ─── */
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Input nativo ────────────────────────── */
+.input {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--spacing-md);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  /* Garante que o input não vaze do wrapper em qualquer contexto */
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.15);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg);
+}
+
+/* ── Padding adicional para ícones ───────── */
+
+/* Espaço à esquerda quando há prefixIcon (16px ícone + 2×8px padding = 40px) */
+.inputWithPrefix {
+  padding-left: 40px;
+}
+
+/* Espaço à direita quando há suffix */
+.inputWithSuffix {
+  padding-right: 40px;
+}
+
+/* ── Estado de erro ──────────────────────── */
+.input.error {
+  border-color: var(--color-error);
+}
+
+.input.error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/* ── Estado read-only ────────────────────── */
+.input.readOnly {
+  background: var(--color-bg);
+  cursor: default;
+  /* Remove a aparência de foco interativo para campos somente leitura */
+  border-color: var(--color-border);
+}
+
+.input.readOnly:focus {
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+/* ── Ícone prefixo ───────────────────────── */
+.prefixIcon {
+  position: absolute;
+  left: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  /* Evita que o ícone receba foco ou interações acidentais */
+  user-select: none;
+}
+
+/* ── Sufixo (ex: toggle de senha) ────────── */
+.suffix {
+  position: absolute;
+  right: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+}
+
+/* Normalização para botões dentro do sufixo */
+.suffix button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  border-radius: var(--border-radius-sm);
+  transition: color 0.15s ease;
+}
+
+.suffix button:hover {
+  color: var(--color-text-primary);
+}
+
+.suffix button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Mensagem de erro ────────────────────── */
+.errorMsg {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  line-height: 1.4;
+}
+
+/* ── Texto de ajuda (hint) ───────────────── */
+.hintMsg {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* ── Contador de caracteres ──────────────── */
+.charCount {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: right;
+  /* Compensa o gap do wrapper para aproximar do input */
+  margin-top: calc(var(--spacing-xs) * -1);
+}
