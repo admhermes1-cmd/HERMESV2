@@ -15,7 +15,7 @@ spring:
   datasource:
     # Banco local criado manualmente:
     #   createdb hermes_dev   (ou via psql / pgAdmin)
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/hermes_dev}
+    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:hermes_dev}
     username: ${DATABASE_USERNAME:hermes}
     password: ${DATABASE_PASSWORD:hermes}
     hikari:
