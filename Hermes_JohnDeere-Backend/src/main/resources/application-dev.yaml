@@ -4,21 +4,13 @@
 # ⚠️ NÃO USAR EM PRODUÇÃO
 # ============================================================
 
-# ── DataSource — banco local, sem variáveis de ambiente obrigatórias ──
 spring:
   datasource:
-    # Banco local criado manualmente:
-    #   createdb hermes_dev   (ou via psql / pgAdmin)
     driver-class-name: org.postgresql.Driver
-
-    # Railway (produção/dev cloud)
-    # Local fallback:
-    # jdbc:postgresql://localhost:5432/hermes_dev
-    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:hermes_dev}
-
+    # Lê DATABASE_URL (Railway) com fallback para banco local
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/hermes_dev}
     username: ${DATABASE_USERNAME:${PGUSER:hermes}}
     password: ${DATABASE_PASSWORD:${PGPASSWORD:hermes}}
-
     hikari:
       pool-name: HermesHikariPool
       maximum-pool-size: 3
@@ -27,30 +19,22 @@ spring:
       max-lifetime: 1800000
       connection-timeout: 30000
 
-  # ── JPA — Hibernate cria/atualiza o schema automaticamente em dev ──
-    jpa:
-      hibernate:
-      # 'update': adiciona colunas/tabelas novas mas não remove existentes.
-      # ⚠️ Nunca usar 'create-drop' em dev com dados que você quer preservar.
+  # ── JPA — indentação correta: irmão de datasource, não filho ──
+  jpa:
+    hibernate:
       ddl-auto: update
-
     show-sql: true
-
     properties:
       hibernate:
-        # SQL indentado no console para leitura fácil
-        # Habilita estatísticas de query — útil para detectar N+1
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         generate_statistics: false
 
-  # ── E-mail — Gmail SMTP (mesmo config de produção) ──
   mail:
     host: ${MAIL_HOST:smtp.sendgrid.net}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
-
     properties:
       mail:
         smtp:
@@ -59,42 +43,29 @@ spring:
             enable: true
             required: true
 
-
-# ── Configurações proprietárias do HERMES ───────────────────
 hermes:
-
-  # JWT — secret simples para dev (NÃO use em produção)
-  # Em produção, gere com: openssl rand -hex 32
   jwt:
     secret: ${JWT_SECRET:dev-secret-key-hermes-nao-usar-em-producao-0000000000000}
     expiration: ${JWT_EXPIRATION:86400000}
     refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
-  # E-mail — remetente
   mail:
     from: ${MAIL_FROM:admhermes1@gmail.com}
     from-name: ${MAIL_FROM_NAME:HERMES Notificações}
     max-size-bytes: 10485760
 
-  # Admin — senha em texto puro apenas para dev.
-  # O DataInitializer.java deve detectar o profile e aplicar
-  # bcrypt apenas quando necessário, ou sempre fazer encode via BCryptPasswordEncoder.
-  # ⚠️ Em produção, ADMIN_PASSWORD deve ser o hash bcrypt da senha.
   admin:
     email: ${ADMIN_EMAIL:admin@hermes.local}
     password: ${ADMIN_PASSWORD:admin123}
     name: ${ADMIN_NAME:Admin Dev}
 
-  # Scheduler — intervalo maior em dev para não poluir logs
   scheduler:
     cron: "*/60 * * * * *"
     max-retry-attempts: 3
 
-  # CORS — permissivo em dev para facilitar testes com Vite, Storybook, etc.
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:4173}
 
-# ── Logging — verboso em dev para facilitar debugging ───────
 logging:
   level:
     root: INFO
@@ -103,14 +74,11 @@ logging:
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
-
   pattern:
     console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level){highlight} %clr(%logger{30}){cyan} - %msg%n"
-
   file:
     name: ""
 
-# ── SpringDoc — Swagger liberado e com exemplos detalhados ──
 springdoc:
   swagger-ui:
     enabled: true
