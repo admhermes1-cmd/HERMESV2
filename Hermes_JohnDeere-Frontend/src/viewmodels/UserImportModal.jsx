@@ -343,7 +343,7 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
             variant="ghost"
             onClick={handleReset}
             aria-label="Importar outro arquivo"
-            icon={<RotateCcw size={15} />}
+            icon={RotateCcw}
           >
             Importar outro
           </Button>
