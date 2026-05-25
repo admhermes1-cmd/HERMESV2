@@ -60,6 +60,7 @@ export default defineConfig(({ mode }) => {
     build: {
       /** Diretório de saída do build final. */
       outDir: 'dist',
+      minify: false,
 
       /**
        * Sourcemaps em produção.
