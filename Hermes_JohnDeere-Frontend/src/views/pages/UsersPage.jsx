@@ -154,7 +154,7 @@ export default function UsersPage() {
           <Button
             variant="secondary"
             onClick={() => setIsImportModalOpen(true)}
-            icon={<Upload size={15} />}
+            icon={Upload}
             aria-label="Importar usuários em massa via CSV ou JSON"
           >
             Importar em Massa
