@@ -377,19 +377,18 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
   // ---------------------------------------------------------------------------
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      aria-label="Modal de importação em massa de usuários"
-    >
-      <div className={styles.container}>
-        {renderHeader()}
-        <div className={styles.body}>
-          {stage === "idle"   && renderUploadStage()}
-          {stage === "result" && renderResultStage()}
-        </div>
-        {renderFooter()}
-      </div>
-    </Modal>
+  <Modal
+    isOpen={isOpen}
+    onClose={handleClose}
+    title={stage === 'result' ? 'Resultado da Importação' : 'Importar Usuários em Massa'}
+    size="lg"
+    hideCloseButton={false}
+    footer={renderFooter()}   {/* ← footer via prop, não dentro do body */}
+  >
+    <div className={styles.body}>
+      {stage === 'idle'   && renderUploadStage()}
+      {stage === 'result' && renderResultStage()}
+    </div>
+  </Modal>
   );
 }
