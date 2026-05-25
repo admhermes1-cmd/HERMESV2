@@ -67,7 +67,7 @@ export default function UsersPage() {
   const columns = [
     {
       key:    'name',
-      label:  'Nome',
+      header: 'Nome',
       render: (row) => (
         <span className={styles.nameCell}>
           <span className={styles.nameText}>{row.name}</span>
@@ -77,7 +77,7 @@ export default function UsersPage() {
     },
     {
       key:    'role',
-      label:  'Papel',
+      header: 'Papel',
       render: (row) => (
         <Badge
           label={row.role}
@@ -87,7 +87,7 @@ export default function UsersPage() {
     },
     {
       key:    'isActive',
-      label:  'Status',
+      header: 'Status',
       render: (row) => (
         <Badge
           label={row.isActive ? 'Ativo' : 'Inativo'}
@@ -97,12 +97,12 @@ export default function UsersPage() {
     },
     {
       key:    'createdAt',
-      label:  'Criado em',
+      header: 'Criado em',
       render: (row) => formatDate(row.createdAt),
     },
     {
       key:    'actions',
-      label:  'Ações',
+      header: 'Ações',
       render: (row) => (
         <span className={styles.actions} role="group" aria-label={`Ações para ${row.name}`}>
           <Button
