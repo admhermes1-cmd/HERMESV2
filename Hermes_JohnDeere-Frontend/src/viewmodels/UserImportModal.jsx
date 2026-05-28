@@ -32,7 +32,7 @@ import styles from "./UserImportModal.module.css";
  * Toda lógica de estado, validação e requisição HTTP vive em {@link useUserImportViewModel}.
  * Este componente é uma View pura: apenas renderiza e delega eventos ao ViewModel.
  *
- * Localização: src/views/components/UserImportModal.jsx
+ * Localização: src/viewmodels/UserImportModal.jsx
  *
  * @param {UserImportModalProps} props
  */
@@ -84,7 +84,8 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
   };
 
   const handleFinish = () => {
-    if (result?.successCount > 0) onSuccess?.();
+    const successes = result?.successCount ?? result?.success ?? 0;
+    if (successes > 0) onSuccess?.();
     handleClose();
   };
 
@@ -253,23 +254,32 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
 
   const renderResultStage = () => {
     if (!result) return null;
-    const hasFailures = result.failureCount > 0;
-    const hasSuccess  = result.successCount > 0;
+
+    // Fallbacks defensivos — acomoda variações de nomenclatura do backend
+    const totalRows    = result.totalRows    ?? result.total   ?? 0;
+    const successCount = result.successCount ?? result.success ?? 0;
+    const failureCount = result.failureCount ?? result.failed  ?? 0;
+    const failures     = Array.isArray(result.failures)
+      ? result.failures
+      : Array.isArray(result.errors) ? result.errors : [];
+
+    const hasFailures = failureCount > 0;
+    const hasSuccess  = successCount > 0;
 
     return (
       <div className={styles.resultStage} role="region" aria-label="Resultado da importação">
         {/* Cartões de resumo */}
         <div className={styles.summaryCards}>
           <div className={styles.summaryCard}>
-            <span className={styles.summaryNumber}>{result.totalRows}</span>
+            <span className={styles.summaryNumber}>{totalRows}</span>
             <span className={styles.summaryLabel}>Total de linhas</span>
           </div>
           <div className={`${styles.summaryCard} ${styles.summaryCardSuccess}`}>
-            <span className={styles.summaryNumber}>{result.successCount}</span>
+            <span className={styles.summaryNumber}>{successCount}</span>
             <span className={styles.summaryLabel}>Criados</span>
           </div>
           <div className={`${styles.summaryCard} ${hasFailures ? styles.summaryCardError : ""}`}>
-            <span className={styles.summaryNumber}>{result.failureCount}</span>
+            <span className={styles.summaryNumber}>{failureCount}</span>
             <span className={styles.summaryLabel}>Falhas</span>
           </div>
         </div>
@@ -285,8 +295,8 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
           <div role="status" className={`${styles.statusBanner} ${styles.statusBannerWarning}`}>
             <AlertCircle size={16} aria-hidden="true" />
             <span>
-              Importação parcial: {result.successCount} criado(s),{" "}
-              {result.failureCount} com falha(s).
+              Importação parcial: {successCount} criado(s),{" "}
+              {failureCount} com falha(s).
             </span>
           </div>
         )}
@@ -298,7 +308,7 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
         )}
 
         {/* Lista de falhas expansível */}
-        {hasFailures && (
+        {hasFailures && failures.length > 0 && (
           <div className={styles.failuresSection}>
             <button
               type="button"
@@ -308,7 +318,7 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
               aria-controls="failures-list"
             >
               <AlertCircle size={14} aria-hidden="true" />
-              <span>Ver {result.failureCount} linha(s) com erro</span>
+              <span>Ver {failureCount} linha(s) com erro</span>
               {failuresOpen
                 ? <ChevronUp size={14} aria-hidden="true" />
                 : <ChevronDown size={14} aria-hidden="true" />}
@@ -320,11 +330,15 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
                 className={styles.failuresList}
                 aria-label="Lista de erros por linha"
               >
-                {result.failures.map((f) => (
-                  <li key={f.rowIndex} className={styles.failureItem}>
-                    <span className={styles.failureRow}>Linha {f.rowIndex}</span>
+                {failures.map((f, idx) => (
+                  <li key={f.rowIndex ?? idx} className={styles.failureItem}>
+                    <span className={styles.failureRow}>Linha {f.rowIndex ?? idx + 1}</span>
                     <span className={styles.failureEmail}>{f.email || "—"}</span>
-                    <span className={styles.failureReason}>{f.errorReason}</span>
+                    <span className={styles.failureReason}>
+                      {typeof f.errorReason === "string"
+                        ? f.errorReason
+                        : f.reason ?? f.message ?? JSON.stringify(f.errorReason)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -343,7 +357,7 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
             variant="ghost"
             onClick={handleReset}
             aria-label="Importar outro arquivo"
-            icon={<RotateCcw size={15} />}
+            icon={RotateCcw}
           >
             Importar outro
           </Button>
@@ -363,7 +377,7 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
           variant="primary"
           onClick={handleImport}
           disabled={!selectedFile || isLoading}
-          loading={isLoading}
+          isLoading={isLoading}
           aria-busy={isLoading}
         >
           {isLoading ? "Importando…" : "Importar Usuários"}
