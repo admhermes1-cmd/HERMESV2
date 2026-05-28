@@ -97,7 +97,7 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
     const content = [
       "name,email,role,password",
       "João Silva,joao@empresa.com,USER,",
-      "Maria Souza,maria@empresa.com,MANAGER,senha123",
+      "Maria Souza,maria@empresa.com,ADMIN,senha123",
     ].join("\n");
     triggerDownload(content, "template_usuarios.csv", "text/csv;charset=utf-8;");
   };
@@ -106,7 +106,7 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
     const content = JSON.stringify(
       [
         { name: "João Silva",  email: "joao@empresa.com",  role: "USER",    password: "" },
-        { name: "Maria Souza", email: "maria@empresa.com", role: "MANAGER", password: "senha123" },
+        { name: "Maria Souza", email: "maria@empresa.com", role: "ADMIN", password: "senha123" },
       ],
       null,
       2
