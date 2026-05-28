@@ -145,7 +145,7 @@ export function useUserImportViewModel() {
         }
       );
 
-      setResult(response.data);
+      setResult(response);
       setStage("result");
     } catch (err) {
       if (err.name === "CanceledError" || err.name === "AbortError") return;
