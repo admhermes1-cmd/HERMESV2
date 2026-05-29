@@ -63,14 +63,14 @@ const AUTH = Object.freeze({
    * @returns {import('@/models/User').User}
    */
   ME: '/auth/me',
-  
+
   /**
-  * Permite ao usuário autenticado alterar sua senha atual.
-  * Requer validação da senha atual e aplicação da política de segurança.
-  * @type {string}
-  * @method POST
-  * @body {{ currentPassword: string, newPassword: string }}
-  */
+   * Permite ao usuário autenticado alterar sua senha atual.
+   * Requer validação da senha atual e aplicação da política de segurança.
+   * @type {string}
+   * @method POST
+   * @body {{ currentPassword: string, newPassword: string }}
+   */
   CHANGE_PASSWORD: '/auth/change-password',
 })
 
@@ -199,6 +199,23 @@ const NOTIFICATIONS = Object.freeze({
   SEND: '/notifications',
 
   /**
+   * Processa um arquivo CSV ou JSON com múltiplos destinatários e envia uma
+   * notificação individual para cada um, reutilizando o fluxo de envio existente.
+   *
+   * Aceita `multipart/form-data` com os campos:
+   * - `templateId` (UUID, obrigatório)
+   * - `templateVersionId` (UUID, opcional — usa versão ativa se omitido)
+   * - `channel` (string, obrigatório — ex: "EMAIL")
+   * - `file` (File, obrigatório — .csv ou .json, máx. 5 MB, 200 destinatários)
+   * - `scheduledAt` (ISO-8601 com offset, opcional — envio imediato se omitido)
+   *
+   * @type {string}
+   * @method POST
+   * @returns {import('@/models/Notification').BulkNotificationResultDTO}
+   */
+  BULK_SEND: '/notifications/bulk',
+
+  /**
    * Retorna os detalhes de uma notificação específica.
    * @param {string} id - ID da notificação
    * @returns {string} URL do endpoint
@@ -293,9 +310,9 @@ const USERS = Object.freeze({
  * @example
  * import { ENDPOINTS } from '@/core/api/apiEndpoints'
  *
- * ENDPOINTS.AUTH.LOGIN          // '/auth/login'
- * ENDPOINTS.TEMPLATES.BY_ID('x') // '/templates/x'
- * ENDPOINTS.NOTIFICATIONS.RETRY('y') // '/notifications/y/retry'
+ * ENDPOINTS.AUTH.LOGIN               // '/auth/login'
+ * ENDPOINTS.TEMPLATES.BY_ID('x')    // '/templates/x'
+ * ENDPOINTS.NOTIFICATIONS.BULK_SEND  // '/notifications/bulk'
  */
 export const ENDPOINTS = Object.freeze({
   AUTH,
