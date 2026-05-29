@@ -190,6 +190,7 @@ export const ROUTES = Object.freeze({
   CHANGE_PASSWORD: '/change-password',
   TEMPLATE_EDIT: '/templates/:id/edit',
   NOTIFICATION_NEW: '/notifications/new',
+  BULK_NOTIFICATION: '/notifications/bulk',
   USERS:     '/users',
   USER_NEW:  '/users/new',
   USER_EDIT: (id) => `/users/${id}/edit`,
