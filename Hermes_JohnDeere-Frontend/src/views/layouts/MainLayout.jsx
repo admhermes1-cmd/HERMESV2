@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   Users,
+  Upload,
 } from 'lucide-react';
 import { useAuth } from '../../core/auth/useAuth';
 import styles from './MainLayout.module.css';
@@ -27,6 +28,7 @@ const ROUTE_TITLES = {
   '/templates': 'Templates',
   '/templates/new': 'Novo Template',
   '/notifications/new': 'Nova Notificação',
+  '/notifications/bulk': 'Envio em Massa',
   '/users': 'Usuários',
   '/users/new': 'Novo Usuário',
 };
@@ -113,8 +115,8 @@ export default function MainLayout() {
   }, [drawerOpen]);
 
   const toggleCollapse = useCallback(() => setCollapsed((c) => !c), []);
-  const toggleDrawer = useCallback(() => setDrawerOpen((o) => !o), []);
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const toggleDrawer   = useCallback(() => setDrawerOpen((o) => !o), []);
+  const closeDrawer    = useCallback(() => setDrawerOpen(false), []);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -125,9 +127,10 @@ export default function MainLayout() {
 
   /* ── Itens de navegação — calculados aqui para reagir ao papel do usuário ── */
   const NAV_ITEMS = [
-    { to: '/dashboard',         label: 'Dashboard',       Icon: LayoutDashboard },
-    { to: '/templates',         label: 'Templates',        Icon: FileText },
-    { to: '/notifications/new', label: 'Nova Notificação', Icon: Send },
+    { to: '/dashboard',          label: 'Dashboard',        Icon: LayoutDashboard },
+    { to: '/templates',          label: 'Templates',         Icon: FileText        },
+    { to: '/notifications/new',  label: 'Nova Notificação',  Icon: Send            },
+    { to: '/notifications/bulk', label: 'Envio em Massa',    Icon: Upload          },
     ...(isAdmin ? [{ to: '/users', label: 'Usuários', Icon: Users }] : []),
   ];
 
@@ -136,8 +139,8 @@ export default function MainLayout() {
     <div
       className={[
         styles.root,
-        collapsed ? styles.rootCollapsed : '',
-        drawerOpen ? styles.rootDrawerOpen : '',
+        collapsed   ? styles.rootCollapsed   : '',
+        drawerOpen  ? styles.rootDrawerOpen  : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -157,8 +160,8 @@ export default function MainLayout() {
       <aside
         className={[
           styles.sidebar,
-          collapsed ? styles.sidebarCollapsed : '',
-          drawerOpen ? styles.sidebarDrawerOpen : '',
+          collapsed  ? styles.sidebarCollapsed   : '',
+          drawerOpen ? styles.sidebarDrawerOpen  : '',
         ]
           .filter(Boolean)
           .join(' ')}
