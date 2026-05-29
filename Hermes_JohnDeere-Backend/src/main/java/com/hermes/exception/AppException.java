@@ -175,6 +175,53 @@ public class AppException extends RuntimeException {
     }
 
     /**
+     * Arquivo enviado não é CSV nem JSON.
+     *
+     * @return {@link AppException} com código {@code BULK_INVALID_FORMAT} e status 400
+     */
+    public static AppException bulkInvalidFormat() {
+        return new AppException(ErrorCode.BULK_INVALID_FORMAT);
+    }
+    
+    /**
+     * Arquivo enviado excede o tamanho máximo permitido.
+     *
+     * @return {@link AppException} com código {@code BULK_FILE_TOO_LARGE} e status 400
+     */
+    public static AppException bulkFileTooLarge() {
+        return new AppException(ErrorCode.BULK_FILE_TOO_LARGE);
+    }
+    
+    /**
+     * Arquivo contém mais registros do que o limite por operação.
+     *
+     * @param max limite máximo de registros permitidos
+     * @return {@link AppException} com código {@code BULK_TOO_MANY_RECORDS} e status 400
+     */
+    public static AppException bulkTooManyRecords(int max) {
+        return new AppException(ErrorCode.BULK_TOO_MANY_RECORDS,
+                String.format(ErrorCode.BULK_TOO_MANY_RECORDS.getMessage(), max));
+    }
+    
+    /**
+     * Arquivo enviado não contém nenhum registro válido.
+     *
+     * @return {@link AppException} com código {@code BULK_EMPTY_FILE} e status 400
+     */
+    public static AppException bulkEmptyFile() {
+        return new AppException(ErrorCode.BULK_EMPTY_FILE);
+    }
+    
+    /**
+     * Operação de envio em massa foi iniciada sem selecionar um template.
+     *
+     * @return {@link AppException} com código {@code BULK_TEMPLATE_REQUIRED} e status 400
+     */
+    public static AppException bulkTemplateRequired() {
+        return new AppException(ErrorCode.BULK_TEMPLATE_REQUIRED);
+    }
+
+    /**
      * Cria uma {@code AppException} com status {@code 409 CONFLICT}.
      *
      * @param code    código semântico do erro
@@ -333,6 +380,12 @@ public class AppException extends RuntimeException {
         PASSWORD_CURRENT_INCORRECT(400, "A senha inserida no campo \"Senha temporária\" está incorreta"),
 
         USER_SEND_EMAIL_FAILED(500, "Falha ao enviar e-mail de boas-vindas");
+
+        BULK_INVALID_FORMAT(400, "Formato de arquivo inválido — use CSV ou JSON"),
+        BULK_FILE_TOO_LARGE(400, "Arquivo excede o limite de 5 MB permitido"),
+        BULK_TOO_MANY_RECORDS(400, "Importação limitada a %d destinatários por vez"),
+        BULK_EMPTY_FILE(400, "O arquivo não contém registros válidos"),
+        BULK_TEMPLATE_REQUIRED(400, "Selecione um template antes de fazer o upload");
 
         private final int httpStatus;
         private final String defaultMessage;
