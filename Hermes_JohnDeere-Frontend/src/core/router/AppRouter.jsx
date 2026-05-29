@@ -53,6 +53,7 @@ import UsersPage from '../../views/pages/UsersPage';
 import UserFormPage from '../../views/pages/UserFormPage';
 import ChangePasswordPage from '../../views/pages/ChangePasswordPage';
 import { ROUTES } from '../constants/appConstants';
+import BulkNotificationPage from '../views/pages/BulkNotificationPage';
 
 // ---------------------------------------------------------------------------
 // Importações lazy das páginas
@@ -199,6 +200,10 @@ const router = createBrowserRouter([
           {
             path: '/users/:id/edit',
             element: <UserFormPage />,
+          },
+          {
+          path: '/notifications/bulk',
+          element: <BulkNotificationPage />,
           },
         ],
       },
