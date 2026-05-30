@@ -4,7 +4,7 @@ import { templateService } from '../services/templateService';
 import { getLatestVersion } from '../models/Template';
 import { TEMPLATE } from '../core/constants/appConstants';
 
-const EMPTY_FORM = { name: '', description: '', channel: '' };
+const EMPTY_FORM = { name: '', description: '', channel: 'EMAIL' };
 const EMPTY_VERSION = { subject: '', body: '', variables: [] };
 
 /**
@@ -29,6 +29,11 @@ function extractVariables(body = '') {
  * Expõe `isEditMode` (não `isEditing`) para corresponder exatamente ao nome
  * usado pela TemplateFormPage.
  *
+ * Em modo criação, o fluxo em etapas é controlado pela View via `currentStep`.
+ * A operação de persistência atômica (template + versão juntos) é feita por
+ * `handleCreateWithVersion`, que encapsula as duas chamadas sequenciais e
+ * evita expor o id intermediário à camada de View.
+ *
  * @returns {{
  *   form: { name: string, description: string, channel: string },
  *   versions: object[],
@@ -43,19 +48,20 @@ function extractVariables(body = '') {
  *   handleVersionFieldChange: (field: string, value: string) => void,
  *   handleSubmit: () => Promise<boolean>,
  *   handleAddVersion: () => void,
- *   handleSaveVersion: (versionId: string) => Promise<boolean>
+ *   handleSaveVersion: (versionId: string) => Promise<boolean>,
+ *   handleCreateWithVersion: () => Promise<boolean>
  * }}
  */
 export function useTemplateFormViewModel() {
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
-  const [form, setForm]                   = useState(EMPTY_FORM);
-  const [versions, setVersions]           = useState([]);
+  const [form, setForm]                       = useState(EMPTY_FORM);
+  const [versions, setVersions]               = useState([]);
   const [selectedVersion, setSelectedVersion] = useState(null);
-  const [isLoading, setIsLoading]         = useState(isEditMode);
-  const [isSaving, setIsSaving]           = useState(false);
-  const [error, setError]                 = useState(null);
+  const [isLoading, setIsLoading]             = useState(isEditMode);
+  const [isSaving, setIsSaving]               = useState(false);
+  const [error, setError]                     = useState(null);
 
   const extractedVariables = useMemo(
     () => extractVariables(selectedVersion?.body ?? ''),
@@ -78,7 +84,7 @@ export function useTemplateFormViewModel() {
         setForm({
           name:        template.name        ?? '',
           description: template.description ?? '',
-          channel:     template.channel     ?? '',
+          channel:     template.channel     ?? 'EMAIL',
         });
 
         const versionList = Array.isArray(template.versions) ? template.versions : [];
@@ -118,6 +124,8 @@ export function useTemplateFormViewModel() {
 
   /**
    * Salva os metadados do template (nome, descrição, canal).
+   * Usado exclusivamente em modo edição para atualizar metadados.
+   * Em criação, preferir `handleCreateWithVersion`.
    * Navegação pós-save é responsabilidade da View.
    * @returns {Promise<boolean>}
    */
@@ -134,6 +142,59 @@ export function useTemplateFormViewModel() {
       return true;
     } catch (err) {
       if (err?.details) console.error('[useTemplateFormViewModel] erro ao salvar:', err.details);
+      setError(err?.message ?? 'Erro ao salvar template.');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  /**
+   * Operação atômica de criação: persiste template (metadados) e primeira
+   * versão em sequência, usando o id retornado pelo backend como elo entre
+   * as duas chamadas.
+   *
+   * Aplicável **apenas em modo criação** (`isEditMode === false`).
+   * A View é responsável por garantir que `selectedVersion` exista e tenha
+   * `body` preenchido antes de chamar esta função.
+   *
+   * @returns {Promise<boolean>} true em caso de sucesso total; false se
+   *   qualquer etapa falhar (erro exposto via `error`).
+   *
+   * @example
+   * const ok = await handleCreateWithVersion();
+   * if (ok) navigate(ROUTES.TEMPLATES);
+   */
+  async function handleCreateWithVersion() {
+    if (!selectedVersion?.body?.trim()) {
+      setError('O corpo da mensagem é obrigatório.');
+      return false;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      // 1. Criar o template — backend retorna o objeto com id
+      const createdTemplate = await templateService.createTemplate(form);
+      const newId = createdTemplate?.id;
+
+      if (!newId) {
+        setError('Resposta inesperada do servidor ao criar template.');
+        return false;
+      }
+
+      // 2. Criar a primeira versão usando o id recém-obtido
+      const versionPayload = {
+        subject:   selectedVersion.subject ?? '',
+        body:      selectedVersion.body,
+        variables: extractVariables(selectedVersion.body),
+      };
+      await templateService.createVersion(newId, versionPayload);
+
+      return true;
+    } catch (err) {
+      if (err?.details) console.error('[useTemplateFormViewModel] erro em handleCreateWithVersion:', err.details);
       setError(err?.message ?? 'Erro ao salvar template.');
       return false;
     } finally {
@@ -167,7 +228,11 @@ export function useTemplateFormViewModel() {
     setError(null);
 
     try {
-      const payload = { subject: version.subject, body: version.body, variables: extractVariables(version.body) };
+      const payload = {
+        subject:   version.subject,
+        body:      version.body,
+        variables: extractVariables(version.body),
+      };
       let saved;
 
       if (version.isDraft) {
@@ -199,7 +264,7 @@ export function useTemplateFormViewModel() {
     versions,
     selectedVersion,
     extractedVariables,
-    isEditMode,      // ← nome que a TemplateFormPage espera
+    isEditMode,
     isLoading,
     isSaving,
     error,
@@ -209,5 +274,6 @@ export function useTemplateFormViewModel() {
     handleSubmit,
     handleAddVersion,
     handleSaveVersion,
+    handleCreateWithVersion,
   };
 }
