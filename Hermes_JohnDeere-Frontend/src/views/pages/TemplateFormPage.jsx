@@ -3,18 +3,26 @@
  * @description Página de criação e edição de Templates do sistema HERMES.
  *
  * Opera em dois modos distintos:
- *  - **Criação** (`/templates/new`): exibe formulário em branco; canal configurável via select.
- *  - **Edição** (`/templates/:id/edit`): carrega template existente; canal é imutável (Badge read-only).
+ *  - **Criação** (`/templates/new`): fluxo sequencial em 2 etapas.
+ *    - Etapa 1: Nome + Descrição. Botão "Continuar" habilita ao preencher Nome.
+ *    - Etapa 2: Editor de versão (Subject + Body + variáveis). Botão "Salvar Template"
+ *      chama `handleCreateWithVersion` — persiste metadados e versão atomicamente.
+ *  - **Edição** (`/templates/:id/edit`): layout em duas colunas, comportamento preservado.
+ *    - Coluna esquerda: metadados (nome, descrição, canal read-only como Badge).
+ *    - Coluna direita: editor de versões com "Nova Versão" e "Salvar Versão".
+ *    - Botão "Salvar Template" (metadados) está na coluna direita, abaixo do editor,
+ *      para eliminar ambiguidade visual entre os dois botões de salvar.
  *
- * Layout em duas colunas:
- *  - Esquerda: metadados do template (nome, descrição, canal).
- *  - Direita: editor de versões com tab switcher Edição/Preview.
+ * Canal de envio:
+ *  - Em criação: oculto da UI; valor padrão EMAIL vem do ViewModel (EMPTY_FORM).
+ *  - Em edição: exibido como Badge read-only (sem select).
+ *  - O código do select e das constantes de canal é mantido intacto para expansão futura.
  *
  * @dependencies
  *  - `useTemplateFormViewModel` — toda a lógica de negócio (form, versões, ações).
  *  - `useNavigate` (react-router-dom) — navegação pós-submit.
  *  - `useAuth` (core/auth) — dados do usuário autenticado.
- *  - Componentes comuns: Button, InputField, Modal, Badge, LoadingSpinner.
+ *  - Componentes comuns: Button, InputField, Badge, LoadingSpinner.
  *  - Componente de template: TemplateVersionSelector.
  *  - Constantes: ROUTES, UI (appConstants).
  *  - Ícones: lucide-react.
@@ -30,6 +38,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Save, Tag, FileText,
   Code, Eye, AlertCircle, CheckCircle2, Copy,
+  ArrowRight, ChevronLeft,
 } from 'lucide-react';
 
 import { useTemplateFormViewModel } from '../../viewmodels/useTemplateFormViewModel';
@@ -47,10 +56,11 @@ import styles from './TemplateFormPage.module.css';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+// CANAL — constantes mantidas intactas para expansão futura SMS/WhatsApp
 const CHANNEL_OPTIONS = [
-  { value: TemplateChannel.EMAIL,    label: 'E-mail'    },
-  { value: TemplateChannel.SMS,      label: 'SMS'        },
-  { value: TemplateChannel.WHATSAPP, label: 'WhatsApp'   },
+  { value: TemplateChannel.EMAIL,    label: 'E-mail'   },
+  { value: TemplateChannel.SMS,      label: 'SMS'      },
+  { value: TemplateChannel.WHATSAPP, label: 'WhatsApp' },
 ];
 
 /** Retorna true se a string contiver ao menos uma tag HTML. */
@@ -93,6 +103,34 @@ function VariableChip({ variable }) {
   );
 }
 
+/**
+ * Indicador de progresso discreto para o fluxo em etapas (modo criação).
+ * @param {{ current: number, total: number, labels: string[] }} props
+ */
+function StepIndicator({ current, total, labels }) {
+  return (
+    <div className={styles.stepIndicator} aria-label={`Etapa ${current} de ${total}`}>
+      {labels.map((label, index) => {
+        const step = index + 1;
+        const isActive = step === current;
+        const isDone   = step < current;
+        return (
+          <div
+            key={label}
+            className={`${styles.stepItem} ${isActive ? styles.stepItemActive : ''} ${isDone ? styles.stepItemDone : ''}`}
+          >
+            <span
+              className={`${styles.stepDot} ${isActive ? styles.stepDotActive : ''} ${isDone ? styles.stepDotDone : ''}`}
+              aria-hidden="true"
+            />
+            <span className={styles.stepLabel}>{label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function TemplateFormPage() {
@@ -115,20 +153,46 @@ export default function TemplateFormPage() {
     handleVersionFieldChange,
     handleAddVersion,
     handleSaveVersion,
+    handleCreateWithVersion,
   } = useTemplateFormViewModel();
 
-  /** Controla a aba ativa no editor de body: 'edit' | 'preview' */
+  /** Aba ativa no editor de body: 'edit' | 'preview' */
   const [bodyTab, setBodyTab] = useState('edit');
+
+  /**
+   * Etapa atual do fluxo de criação: 1 (informações) | 2 (conteúdo).
+   * Usado apenas em modo criação; ignorado em modo edição.
+   */
+  const [currentStep, setCurrentStep] = useState(1);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleBack = () => navigate(ROUTES.TEMPLATES);
 
-  const handleFormSubmit = async () => {
+  /** Avança da Etapa 1 para Etapa 2 (sem chamada à API). */
+  const handleContinueToStep2 = () => {
+    if (!form.name.trim()) return;
+    // Garante que exista uma versão draft para editar na etapa 2
+    if (versions.length === 0) handleAddVersion();
+    setCurrentStep(2);
+  };
+
+  /** Retorna da Etapa 2 para Etapa 1 sem perder dados. */
+  const handleBackToStep1 = () => setCurrentStep(1);
+
+  /** Salva template + versão atomicamente (criação) e navega para lista. */
+  const handleCreateSubmit = async () => {
+    const ok = await handleCreateWithVersion();
+    if (ok) navigate(ROUTES.TEMPLATES);
+  };
+
+  /** Salva apenas metadados do template (edição) e navega para lista. */
+  const handleEditSubmit = async () => {
     const ok = await handleSubmit();
     if (ok) navigate(ROUTES.TEMPLATES);
   };
 
+  /** Salva a versão selecionada (edição — nova versão adicionada). */
   const handleSaveSelectedVersion = async () => {
     if (!selectedVersion) return;
     await handleSaveVersion(selectedVersion.id);
@@ -136,16 +200,17 @@ export default function TemplateFormPage() {
 
   // ── Derivados ─────────────────────────────────────────────────────────────
 
-  // Mapeamento inline de canal → variante de Badge (UI.BADGE_VARIANTS não existe em appConstants)
   const CHANNEL_BADGE_MAP = { EMAIL: 'info', SMS: 'warning', WHATSAPP: 'success' };
   const channelBadgeVariant = CHANNEL_BADGE_MAP[form.channel] ?? 'info';
 
-  // UI.CHANNEL_LABEL (sem S) é o nome correto em appConstants
   const channelLabel = UI.CHANNEL_LABEL?.[form.channel]
     ?? CHANNEL_OPTIONS.find(o => o.value === form.channel)?.label
     ?? form.channel;
 
   const bodyIsHtml = containsHtml(selectedVersion?.body ?? '');
+
+  const canContinue    = form.name.trim().length > 0;
+  const canSaveCreate  = Boolean(selectedVersion?.body?.trim());
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -172,6 +237,15 @@ export default function TemplateFormPage() {
             <p className={styles.subtitle}>{form.name}</p>
           )}
         </div>
+
+        {/* Indicador de etapas — somente modo criação */}
+        {!isEditMode && (
+          <StepIndicator
+            current={currentStep}
+            total={2}
+            labels={['Informações', 'Conteúdo']}
+          />
+        )}
       </header>
 
       {/* ── Banner de erro global ───────────────────────────────────────── */}
@@ -187,12 +261,14 @@ export default function TemplateFormPage() {
         <div className={styles.loadingArea}>
           <LoadingSpinner />
         </div>
-      ) : (
+      ) : isEditMode ? (
+
+        /* ═══════════════════════════════════════════════════════════════
+           MODO EDIÇÃO — Layout duas colunas (comportamento preservado)
+        ═══════════════════════════════════════════════════════════════ */
         <div className={styles.layout}>
 
-          {/* ════════════════════════════════════════════════════════════
-              COLUNA ESQUERDA — Metadados do Template
-          ════════════════════════════════════════════════════════════ */}
+          {/* Coluna esquerda — Metadados */}
           <section className={styles.column} aria-label="Metadados do template">
             <div className={styles.card}>
               <div className={styles.cardHeader}>
@@ -203,7 +279,6 @@ export default function TemplateFormPage() {
               <fieldset className={styles.fieldset}>
                 <legend className={styles.srOnly}>Dados gerais</legend>
 
-                {/* Nome */}
                 <InputField
                   label="Nome do Template"
                   name="name"
@@ -214,7 +289,6 @@ export default function TemplateFormPage() {
                   required
                 />
 
-                {/* Descrição */}
                 <div className={styles.fieldGroup}>
                   <label className={styles.label} htmlFor="template-description">
                     Descrição
@@ -230,60 +304,26 @@ export default function TemplateFormPage() {
                   />
                 </div>
 
-                {/* Canal */}
+                {/* Canal — read-only em edição */}
                 <div className={styles.fieldGroup}>
-                  <label className={styles.label} htmlFor="template-channel">
-                    Canal de envio
-                  </label>
-
-                  {isEditMode ? (
-                    <div className={styles.channelReadOnly}>
-                      <Badge label={channelLabel} variant={channelBadgeVariant} />
-                      <p className={styles.channelHint}>
-                        O canal não pode ser alterado após a criação.
-                      </p>
-                    </div>
-                  ) : (
-                    <select
-                      id="template-channel"
-                      className={styles.select}
-                      value={form.channel}
-                      onChange={(e) => handleChange('channel', e.target.value)}
-                      aria-label="Selecionar canal de envio"
-                    >
-                      <option value="" disabled>Selecione um canal…</option>
-                      {CHANNEL_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <label className={styles.label}>Canal de envio</label>
+                  <div className={styles.channelReadOnly}>
+                    <Badge label={channelLabel} variant={channelBadgeVariant} />
+                    <p className={styles.channelHint}>
+                      O canal não pode ser alterado após a criação.
+                    </p>
+                  </div>
                 </div>
-              </fieldset>
 
-              <div className={styles.cardActions}>
-                <Button
-                  type="button"
-                  variant="primary"
-                  isLoading={isSaving}
-                  onClick={handleFormSubmit}
-                  aria-label="Salvar template"
-                >
-                  <Save size={16} aria-hidden="true" />
-                  Salvar Template
-                </Button>
-              </div>
+                {/* CANAL — select oculto temporariamente, expansão futura SMS/WhatsApp */}
+              </fieldset>
             </div>
           </section>
 
-          {/* ════════════════════════════════════════════════════════════
-              COLUNA DIREITA — Editor de Versão
-          ════════════════════════════════════════════════════════════ */}
+          {/* Coluna direita — Editor de versões + Salvar Template */}
           <section className={styles.column} aria-label="Editor de versões">
             <div className={styles.card}>
 
-              {/* Header do card de versões */}
               <div className={`${styles.cardHeader} ${styles.cardHeaderSpaced}`}>
                 <div className={styles.cardHeaderLeft}>
                   <Copy size={18} aria-hidden="true" />
@@ -300,7 +340,6 @@ export default function TemplateFormPage() {
                 </Button>
               </div>
 
-              {/* Seletor de versão */}
               {versions.length > 0 && (
                 <TemplateVersionSelector
                   versions={versions}
@@ -309,11 +348,9 @@ export default function TemplateFormPage() {
                 />
               )}
 
-              {/* Editor da versão selecionada */}
               {selectedVersion ? (
                 <div className={styles.versionEditor}>
 
-                  {/* Assunto — somente e-mail */}
                   {form.channel === TemplateChannel.EMAIL && (
                     <InputField
                       label="Assunto"
@@ -325,21 +362,16 @@ export default function TemplateFormPage() {
                     />
                   )}
 
-                  {/* Tab switcher — Edição / Preview */}
                   <div className={styles.fieldGroup}>
-                    <div
-                      className={styles.tabBar}
-                      role="tablist"
-                      aria-label="Modo de edição do corpo"
-                    >
+                    <div className={styles.tabBar} role="tablist" aria-label="Modo de edição do corpo">
                       <button
                         type="button"
                         role="tab"
                         aria-selected={bodyTab === 'edit'}
                         className={`${styles.tab} ${bodyTab === 'edit' ? styles.tabActive : ''}`}
                         onClick={() => setBodyTab('edit')}
-                        aria-controls="panel-edit"
-                        id="tab-edit"
+                        aria-controls="panel-edit-e"
+                        id="tab-edit-e"
                       >
                         <Code size={14} aria-hidden="true" />
                         Edição
@@ -350,26 +382,18 @@ export default function TemplateFormPage() {
                         aria-selected={bodyTab === 'preview'}
                         className={`${styles.tab} ${bodyTab === 'preview' ? styles.tabActive : ''}`}
                         onClick={() => setBodyTab('preview')}
-                        aria-controls="panel-preview"
-                        id="tab-preview"
+                        aria-controls="panel-preview-e"
+                        id="tab-preview-e"
                       >
                         <Eye size={14} aria-hidden="true" />
                         Preview
                       </button>
                     </div>
 
-                    {/* Painel: Edição */}
-                    <div
-                      id="panel-edit"
-                      role="tabpanel"
-                      aria-labelledby="tab-edit"
-                      hidden={bodyTab !== 'edit'}
-                    >
-                      <label className={styles.srOnly} htmlFor="version-body">
-                        Corpo da mensagem
-                      </label>
+                    <div id="panel-edit-e" role="tabpanel" aria-labelledby="tab-edit-e" hidden={bodyTab !== 'edit'}>
+                      <label className={styles.srOnly} htmlFor="version-body-e">Corpo da mensagem</label>
                       <textarea
-                        id="version-body"
+                        id="version-body-e"
                         className={`${styles.textarea} ${styles.textareaBody}`}
                         value={selectedVersion.body ?? ''}
                         onChange={(e) => handleVersionFieldChange('body', e.target.value)}
@@ -379,13 +403,7 @@ export default function TemplateFormPage() {
                       />
                     </div>
 
-                    {/* Painel: Preview */}
-                    <div
-                      id="panel-preview"
-                      role="tabpanel"
-                      aria-labelledby="tab-preview"
-                      hidden={bodyTab !== 'preview'}
-                    >
+                    <div id="panel-preview-e" role="tabpanel" aria-labelledby="tab-preview-e" hidden={bodyTab !== 'preview'}>
                       {bodyIsHtml ? (
                         /* eslint-disable-next-line react/no-danger */
                         <div
@@ -396,27 +414,19 @@ export default function TemplateFormPage() {
                       ) : (
                         <pre className={`${styles.bodyPreview} ${styles.bodyPreviewText}`}>
                           {selectedVersion.body || (
-                            <span className={styles.previewEmpty}>
-                              Nenhum conteúdo para exibir.
-                            </span>
+                            <span className={styles.previewEmpty}>Nenhum conteúdo para exibir.</span>
                           )}
                         </pre>
                       )}
                     </div>
                   </div>
 
-                  {/* Painel de variáveis detectadas */}
                   <div className={styles.variablesPanel} aria-label="Variáveis detectadas">
                     <div className={styles.variablesPanelHeader}>
                       <Tag size={15} aria-hidden="true" />
                       <span className={styles.variablesPanelTitle}>Variáveis detectadas</span>
                     </div>
-
-                    <div
-                      className={styles.variablesList}
-                      aria-live="polite"
-                      aria-atomic="true"
-                    >
+                    <div className={styles.variablesList} aria-live="polite" aria-atomic="true">
                       {extractedVariables.length === 0 ? (
                         <p className={styles.variablesEmpty}>
                           Nenhuma variável detectada. Use{' '}
@@ -431,7 +441,7 @@ export default function TemplateFormPage() {
                     </div>
                   </div>
 
-                  {/* Salvar versão */}
+                  {/* Salvar versão (nova versão em edição) */}
                   <div className={styles.versionActions}>
                     <Button
                       type="button"
@@ -450,8 +460,240 @@ export default function TemplateFormPage() {
                   <strong>Nova Versão</strong> para começar.
                 </p>
               )}
+
+              {/* Salvar metadados do template — edição */}
+              <div className={styles.editSaveArea}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  isLoading={isSaving}
+                  onClick={handleEditSubmit}
+                  aria-label="Salvar alterações do template"
+                >
+                  <Save size={16} aria-hidden="true" />
+                  Salvar Template
+                </Button>
+              </div>
+
             </div>
           </section>
+        </div>
+
+      ) : (
+
+        /* ═══════════════════════════════════════════════════════════════
+           MODO CRIAÇÃO — Fluxo em etapas
+        ═══════════════════════════════════════════════════════════════ */
+        <div className={styles.creationFlow}>
+
+          {/* ── Etapa 1 — Informações básicas ─────────────────────────── */}
+          {currentStep === 1 && (
+            <div className={styles.stepCard} aria-label="Etapa 1 de 2: Informações do template">
+              <div className={styles.cardHeader}>
+                <FileText size={18} aria-hidden="true" />
+                <h2 className={styles.cardTitle}>Informações do Template</h2>
+              </div>
+
+              <fieldset className={styles.fieldset}>
+                <legend className={styles.srOnly}>Dados gerais</legend>
+
+                <InputField
+                  label="Nome do Template"
+                  name="name"
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  placeholder="Ex: Boas-vindas ao cliente"
+                  required
+                />
+
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label} htmlFor="template-description-c">
+                    Descrição
+                    <span className={styles.optionalTag}> (opcional)</span>
+                  </label>
+                  <textarea
+                    id="template-description-c"
+                    className={styles.textarea}
+                    name="description"
+                    value={form.description}
+                    onChange={(e) => handleChange('description', e.target.value)}
+                    placeholder="Descreva brevemente a finalidade deste template…"
+                    rows={3}
+                  />
+                </div>
+
+                {/* CANAL — oculto temporariamente, expansão futura SMS/WhatsApp */}
+                {/*
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label} htmlFor="template-channel-c">Canal de envio</label>
+                  <select
+                    id="template-channel-c"
+                    className={styles.select}
+                    value={form.channel}
+                    onChange={(e) => handleChange('channel', e.target.value)}
+                    aria-label="Selecionar canal de envio"
+                  >
+                    <option value="" disabled>Selecione um canal…</option>
+                    {CHANNEL_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                */}
+              </fieldset>
+
+              <div className={styles.stepActions}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={!canContinue}
+                  onClick={handleContinueToStep2}
+                  aria-label="Continuar para edição do conteúdo"
+                  aria-disabled={!canContinue}
+                >
+                  Continuar
+                  <ArrowRight size={16} aria-hidden="true" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Etapa 2 — Corpo do template ───────────────────────────── */}
+          {currentStep === 2 && (
+            <div className={styles.stepCard} aria-label="Etapa 2 de 2: Conteúdo do template">
+              <div className={`${styles.cardHeader} ${styles.cardHeaderSpaced}`}>
+                <div className={styles.cardHeaderLeft}>
+                  <Copy size={18} aria-hidden="true" />
+                  <h2 className={styles.cardTitle}>Conteúdo do Template</h2>
+                </div>
+                <button
+                  type="button"
+                  className={styles.backStepButton}
+                  onClick={handleBackToStep1}
+                  aria-label="Voltar para etapa de informações"
+                >
+                  <ChevronLeft size={15} aria-hidden="true" />
+                  Voltar
+                </button>
+              </div>
+
+              {selectedVersion && (
+                <div className={styles.versionEditor}>
+
+                  {/* Assunto — apenas EMAIL */}
+                  {form.channel === TemplateChannel.EMAIL && (
+                    <InputField
+                      label="Assunto"
+                      name="subject"
+                      type="text"
+                      value={selectedVersion.subject ?? ''}
+                      onChange={(e) => handleVersionFieldChange('subject', e.target.value)}
+                      placeholder="Assunto do e-mail…"
+                    />
+                  )}
+
+                  {/* Tab switcher */}
+                  <div className={styles.fieldGroup}>
+                    <div className={styles.tabBar} role="tablist" aria-label="Modo de edição do corpo">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={bodyTab === 'edit'}
+                        className={`${styles.tab} ${bodyTab === 'edit' ? styles.tabActive : ''}`}
+                        onClick={() => setBodyTab('edit')}
+                        aria-controls="panel-edit-c"
+                        id="tab-edit-c"
+                      >
+                        <Code size={14} aria-hidden="true" />
+                        Edição
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={bodyTab === 'preview'}
+                        className={`${styles.tab} ${bodyTab === 'preview' ? styles.tabActive : ''}`}
+                        onClick={() => setBodyTab('preview')}
+                        aria-controls="panel-preview-c"
+                        id="tab-preview-c"
+                      >
+                        <Eye size={14} aria-hidden="true" />
+                        Preview
+                      </button>
+                    </div>
+
+                    <div id="panel-edit-c" role="tabpanel" aria-labelledby="tab-edit-c" hidden={bodyTab !== 'edit'}>
+                      <label className={styles.srOnly} htmlFor="version-body-c">Corpo da mensagem</label>
+                      <textarea
+                        id="version-body-c"
+                        className={`${styles.textarea} ${styles.textareaBody}`}
+                        value={selectedVersion.body ?? ''}
+                        onChange={(e) => handleVersionFieldChange('body', e.target.value)}
+                        placeholder="Digite o corpo da mensagem. Use {{variavel}} para inserir variáveis dinâmicas…"
+                        rows={12}
+                        aria-label="Corpo da versão do template"
+                      />
+                    </div>
+
+                    <div id="panel-preview-c" role="tabpanel" aria-labelledby="tab-preview-c" hidden={bodyTab !== 'preview'}>
+                      {bodyIsHtml ? (
+                        /* eslint-disable-next-line react/no-danger */
+                        <div
+                          className={styles.bodyPreview}
+                          dangerouslySetInnerHTML={{ __html: selectedVersion.body }}
+                          aria-label="Preview do corpo HTML"
+                        />
+                      ) : (
+                        <pre className={`${styles.bodyPreview} ${styles.bodyPreviewText}`}>
+                          {selectedVersion.body || (
+                            <span className={styles.previewEmpty}>Nenhum conteúdo para exibir.</span>
+                          )}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Variáveis detectadas */}
+                  <div className={styles.variablesPanel} aria-label="Variáveis detectadas">
+                    <div className={styles.variablesPanelHeader}>
+                      <Tag size={15} aria-hidden="true" />
+                      <span className={styles.variablesPanelTitle}>Variáveis detectadas</span>
+                    </div>
+                    <div className={styles.variablesList} aria-live="polite" aria-atomic="true">
+                      {extractedVariables.length === 0 ? (
+                        <p className={styles.variablesEmpty}>
+                          Nenhuma variável detectada. Use{' '}
+                          <code className={styles.inlineCode}>{'{{nome_da_variavel}}'}</code>{' '}
+                          no corpo da mensagem.
+                        </p>
+                      ) : (
+                        extractedVariables.map((variable) => (
+                          <VariableChip key={variable} variable={variable} />
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Salvar Template — único botão de submit em criação */}
+                  <div className={styles.stepActions}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      isLoading={isSaving}
+                      disabled={!canSaveCreate}
+                      onClick={handleCreateSubmit}
+                      aria-label="Salvar template com conteúdo"
+                      aria-disabled={!canSaveCreate}
+                    >
+                      <Save size={16} aria-hidden="true" />
+                      Salvar Template
+                    </Button>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       )}
