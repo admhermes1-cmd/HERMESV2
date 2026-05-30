@@ -53,7 +53,7 @@ import UsersPage from '../../views/pages/UsersPage';
 import UserFormPage from '../../views/pages/UserFormPage';
 import ChangePasswordPage from '../../views/pages/ChangePasswordPage';
 import { ROUTES } from '../constants/appConstants';
-import BulkNotificationPage from '../views/pages/BulkNotificationPage';
+import BulkNotificationPage from '../../views/pages/BulkNotificationPage';
 
 // ---------------------------------------------------------------------------
 // Importações lazy das páginas
