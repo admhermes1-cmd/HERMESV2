@@ -3,8 +3,10 @@ package com.hermes.service;
 import com.hermes.config.MailConfig;
 import com.hermes.entity.Notification;
 import com.hermes.entity.TemplateVersion;
+import com.hermes.entity.User;
 import com.hermes.exception.AppException;
 import com.hermes.exception.AppException.ErrorCode;
+import com.hermes.repository.UserRepository;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
@@ -20,7 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -32,29 +37,17 @@ import java.util.regex.Pattern;
  * <p>Substitui a implementação anterior baseada em {@code JavaMailSender} (SMTP),
  * que era bloqueada pelo Railway em todas as portas (587, 465, 2525).
  * A API HTTP do SendGrid opera exclusivamente na porta 443 (HTTPS),
- * sem restrições em nenhum provedor de cloud.
+ * sem restrições em nenhum provedor de cloud.</p>
  *
- * <p>Funcionalidades mantidas da implementação anterior:
- * <ul>
- *   <li>Destinatários TO, CC e BCC</li>
- *   <li>Corpo em HTML ou texto plano (detectado automaticamente)</li>
- *   <li>Substituição de variáveis no subject e no body ({@code {{variavel}}})</li>
- *   <li>Anexos via {@link MultipartFile}</li>
- * </ul>
+ * <p><strong>Ordem de resolução de variáveis no envio:</strong></p>
+ * <ol>
+ *   <li>{@link #resolveFixedVariables(String, User, LocalDateTime)} — variáveis automáticas
+ *       derivadas do destinatário e do sistema.</li>
+ *   <li>{@link #resolveVariables(String, Map)} — variáveis dinâmicas fornecidas pelo usuário
+ *       no payload da notificação.</li>
+ * </ol>
  *
- * <p>Dependência necessária no {@code pom.xml}:
- * <pre>{@code
- * <dependency>
- *     <groupId>com.sendgrid</groupId>
- *     <artifactId>sendgrid-java</artifactId>
- *     <version>4.10.2</version>
- * </dependency>
- * }</pre>
- *
- * <p>Variável de ambiente necessária no Railway:
- * <pre>
- * MAIL_PASSWORD=SG.sua_api_key_aqui   (a API Key do SendGrid — campo username não é usado)
- * </pre>
+ * <p>Variáveis fixas são resolvidas antes das dinâmicas para evitar colisões acidentais.</p>
  */
 @Slf4j
 @Service
@@ -67,39 +60,40 @@ public class EmailService {
     /** Endpoint da API de envio de e-mail do SendGrid. */
     private static final String SENDGRID_MAIL_ENDPOINT = "mail/send";
 
-    /** HTTP status de sucesso aceitos pelo SendGrid (202 Accepted). */
+    /** HTTP status de sucesso aceito pelo SendGrid (202 Accepted). */
     private static final int SENDGRID_SUCCESS_STATUS = 202;
 
+    // ─── Formatadores de data/hora (PT-BR) ───────────────────────────────────
+
+    private static final DateTimeFormatter FMT_DATA        = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FMT_DATA_HORA   = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm");
+    private static final DateTimeFormatter FMT_ANO         = DateTimeFormatter.ofPattern("yyyy");
+
+    /** Nomes dos meses em português, indexados por valor (1 = Janeiro). */
+    private static final String[] MESES_PT = {
+        "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    };
+
+    /** Nomes dos dias da semana em português, indexados por DayOfWeek.getValue() (1 = Segunda). */
+    private static final String[] DIAS_SEMANA_PT = {
+        "", "Segunda-feira", "Terça-feira", "Quarta-feira",
+        "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"
+    };
+
     private final MailConfig mailConfig;
+    private final UserRepository userRepository;
 
     /**
      * A API Key do SendGrid é lida da variável {@code MAIL_PASSWORD} para manter
      * compatibilidade com as variáveis de ambiente já configuradas no Railway.
-     * Injetada via {@link org.springframework.beans.factory.annotation.Value}.
      */
     @org.springframework.beans.factory.annotation.Value("${spring.mail.password}")
     private String sendGridApiKey;
 
-    /**
-     * Envia um e-mail via SendGrid HTTP API com base nos dados da notificação
-     * e na versão do template.
-     *
-     * <p>O fluxo de composição segue esta ordem:
-     * <ol>
-     *   <li>Resolução de variáveis no subject e no body</li>
-     *   <li>Detecção automática de HTML no body</li>
-     *   <li>Composição do objeto {@link Mail} com remetente, destinatários e conteúdo</li>
-     *   <li>Adição de anexos codificados em Base64</li>
-     *   <li>Envio via {@link SendGrid} HTTP API</li>
-     *   <li>Validação do status HTTP da resposta</li>
-     * </ol>
-     *
-     * @param notification entidade de notificação com destinatários e variáveis de substituição
-     * @param version      versão do template com subject e body originais
-     * @param attachments  lista de arquivos a anexar; pode ser {@code null} ou vazia
-     * @throws AppException {@code NOTIFICATION_SEND_FAILED} em caso de falha no envio
-     *                      ou erro ao compor a mensagem
-     */
+    // =========================================================================
+    // Envio — welcome email
+    // =========================================================================
 
     /**
      * Envia o e-mail de boas-vindas com as credenciais de acesso ao HERMES via SendGrid.
@@ -128,10 +122,10 @@ public class EmailService {
                 """.formatted(name, to, rawPassword);
 
         try {
-            Email from = new Email(mailConfig.getFrom(), mailConfig.getFromName());
-            Email recipient = new Email(to);
-            Content content = new Content("text/plain", body);
-            Mail mail = new Mail(from, subject, recipient, content);
+            Email from       = new Email(mailConfig.getFrom(), mailConfig.getFromName());
+            Email recipient  = new Email(to);
+            Content content  = new Content("text/plain", body);
+            Mail mail        = new Mail(from, subject, recipient, content);
 
             SendGrid sg = new SendGrid(sendGridApiKey);
             Request request = new Request();
@@ -160,26 +154,65 @@ public class EmailService {
         }
     }
 
+    // =========================================================================
+    // Envio — notificação com template
+    // =========================================================================
 
+    /**
+     * Envia um e-mail via SendGrid HTTP API com base nos dados da notificação
+     * e na versão do template.
+     *
+     * <p>Ordem de resolução de variáveis:</p>
+     * <ol>
+     *   <li>Variáveis fixas automáticas ({@code {{PRIMEIRO_NOME}}}, {@code {{MATRICULA}}}, etc.)
+     *       resolvidas pelo destinatário principal (primeiro endereço em TO).</li>
+     *   <li>Variáveis dinâmicas fornecidas pelo usuário no payload da notificação.</li>
+     * </ol>
+     *
+     * @param notification entidade de notificação com destinatários e variáveis de substituição.
+     * @param version      versão do template com subject e body originais.
+     * @param attachments  lista de arquivos a anexar; pode ser {@code null} ou vazia.
+     * @throws AppException {@code NOTIFICATION_SEND_FAILED} em caso de falha no envio.
+     */
     public void sendEmail(Notification notification, TemplateVersion version,
                           List<MultipartFile> attachments) {
         log.debug("Compondo e-mail para notificação: {}", notification.getId());
 
         Map<String, String> variables = notification.getVariables();
+        LocalDateTime sentAt = LocalDateTime.now();
 
-        String resolvedSubject = resolveVariables(version.getSubject(), variables);
-        String resolvedBody    = resolveVariables(version.getBody(), variables);
-        boolean isHtml         = resolvedBody.contains("<");
+        // ── Resolver destinatário principal para variáveis fixas ──────────────
+        // Usa o primeiro endereço TO como referência para busca do usuário no banco.
+        var recipients = notification.getRecipients();
+        String primaryRecipientEmail = (recipients.to() != null && !recipients.to().isEmpty())
+                ? recipients.to().get(0)
+                : null;
+
+        User recipientUser = null;
+        if (primaryRecipientEmail != null) {
+            recipientUser = userRepository.findByEmail(primaryRecipientEmail).orElse(null);
+            if (recipientUser == null) {
+                log.debug("Destinatário principal '{}' não encontrado no banco — variáveis fixas mantidas como placeholder.",
+                        primaryRecipientEmail);
+            }
+        }
+
+        // ── Resolução em duas etapas ───────────────────────────────────────────
+        // 1. Fixas primeiro (derivadas do usuário/sistema)
+        // 2. Dinâmicas em seguida (fornecidas pelo payload da notificação)
+        String resolvedSubject = resolveFixedVariables(version.getSubject(), recipientUser, sentAt);
+        resolvedSubject        = resolveVariables(resolvedSubject, variables);
+
+        String resolvedBody    = resolveFixedVariables(version.getBody(), recipientUser, sentAt);
+        resolvedBody           = resolveVariables(resolvedBody, variables);
+
+        boolean isHtml = resolvedBody.contains("<");
 
         try {
             // ── Remetente ────────────────────────────────────────────────
             Email from = new Email(mailConfig.getFrom(), mailConfig.getFromName());
 
             // ── Destinatários via Personalization ─────────────────────────
-            // SendGrid usa o objeto Personalization para TO, CC e BCC,
-            // permitindo múltiplos destinatários por categoria.
-            var recipients = notification.getRecipients();
-
             Personalization personalization = new Personalization();
 
             if (recipients.to() != null) {
@@ -193,10 +226,8 @@ public class EmailService {
             }
 
             // ── Conteúdo ──────────────────────────────────────────────────
-            // SendGrid exige ao menos um Content. Para HTML, incluímos também
-            // uma versão text/plain como fallback para clientes que não renderizam HTML.
             String contentType = isHtml ? "text/html" : "text/plain";
-            Content content = new Content(contentType, resolvedBody);
+            Content content    = new Content(contentType, resolvedBody);
 
             // ── Montagem do Mail ──────────────────────────────────────────
             Mail mail = new Mail();
@@ -205,15 +236,12 @@ public class EmailService {
             mail.addPersonalization(personalization);
             mail.addContent(content);
 
-            // Se for HTML, adiciona fallback text/plain (boas práticas de e-mail)
             if (isHtml) {
                 String plainText = resolvedBody.replaceAll("<[^>]+>", "").trim();
                 mail.addContent(new Content("text/plain", plainText));
             }
 
             // ── Anexos ────────────────────────────────────────────────────
-            // SendGrid recebe anexos como Base64. O MultipartFile é lido em bytes
-            // e codificado antes de ser adicionado ao payload JSON da API.
             if (attachments != null) {
                 for (MultipartFile attachment : attachments) {
                     if (attachment != null && !attachment.isEmpty()) {
@@ -223,14 +251,10 @@ public class EmailService {
 
                         Attachments sgAttachment = new Attachments();
                         sgAttachment.setFilename(filename);
-                        sgAttachment.setContent(
-                                Base64.getEncoder().encodeToString(attachment.getBytes())
-                        );
-                        sgAttachment.setType(
-                                attachment.getContentType() != null
-                                        ? attachment.getContentType()
-                                        : "application/octet-stream"
-                        );
+                        sgAttachment.setContent(Base64.getEncoder().encodeToString(attachment.getBytes()));
+                        sgAttachment.setType(attachment.getContentType() != null
+                                ? attachment.getContentType()
+                                : "application/octet-stream");
                         sgAttachment.setDisposition("attachment");
                         mail.addAttachments(sgAttachment);
                     }
@@ -259,7 +283,7 @@ public class EmailService {
                     toCount, notification.getId());
 
         } catch (AppException ex) {
-            throw ex; // propaga sem reempacotar
+            throw ex;
         } catch (IOException ex) {
             log.error("Falha ao enviar e-mail para notificação {}: {}", notification.getId(), ex.getMessage(), ex);
             throw AppException.internal(ErrorCode.NOTIFICATION_SEND_FAILED,
@@ -267,11 +291,90 @@ public class EmailService {
         }
     }
 
+    // =========================================================================
+    // Resolução de variáveis
+    // =========================================================================
+
+    /**
+     * Resolve todas as variáveis fixas automáticas no texto informado.
+     *
+     * <p>Variáveis derivadas do usuário ficam como placeholder se o destinatário
+     * for {@code null} ou se o campo correspondente for {@code null} no banco.
+     * Variáveis geradas pelo sistema (data, hora, saudação) são sempre resolvidas.</p>
+     *
+     * @param text      texto com placeholders no formato {@code {{VARIAVEL}}}.
+     * @param recipient usuário destinatário; pode ser {@code null}.
+     * @param sentAt    instante do envio para cálculo das variáveis temporais.
+     * @return texto com variáveis fixas substituídas.
+     */
+    public String resolveFixedVariables(String text, User recipient, LocalDateTime sentAt) {
+        if (text == null || text.isBlank()) {
+            return text;
+        }
+
+        Map<String, String> fixed = new HashMap<>();
+
+        // ── Variáveis do usuário ───────────────────────────────────────────────
+        if (recipient != null) {
+            String fullName = recipient.getName() != null ? recipient.getName().trim() : "";
+            String[] parts  = fullName.split("\\s+");
+
+            String primeiroNome        = parts.length > 0 ? parts[0] : fullName;
+            String primeiroUltimoNome  = parts.length > 1
+                    ? parts[0] + " " + parts[parts.length - 1]
+                    : fullName;
+
+            fixed.put(FixedVariables.PRIMEIRO_NOME,        primeiroNome);
+            fixed.put(FixedVariables.PRIMEIRO_ULTIMO_NOME, primeiroUltimoNome);
+            fixed.put(FixedVariables.NOME_COMPLETO,        fullName);
+            fixed.put(FixedVariables.EMAIL,                recipient.getEmail());
+
+            if (recipient.getMatricula() != null) {
+                fixed.put(FixedVariables.MATRICULA, String.valueOf(recipient.getMatricula()));
+            }
+            if (recipient.getCargo() != null) {
+                fixed.put(FixedVariables.CARGO, recipient.getCargo());
+            }
+
+            // ── Variáveis da célula ────────────────────────────────────────────
+            var celula = recipient.getCelula();
+            if (celula != null) {
+                fixed.put(FixedVariables.NOME_CELULA, celula.getNome());
+
+                var gestor = celula.getGestor();
+                if (gestor != null) {
+                    String gestorFullName = gestor.getName() != null ? gestor.getName().trim() : "";
+                    String[] gestorParts  = gestorFullName.split("\\s+");
+
+                    fixed.put(FixedVariables.GESTOR_NOME,          gestorFullName);
+                    fixed.put(FixedVariables.GESTOR_PRIMEIRO_NOME, gestorParts.length > 0 ? gestorParts[0] : gestorFullName);
+                    fixed.put(FixedVariables.GESTOR_EMAIL,         gestor.getEmail());
+                }
+            }
+        }
+
+        // ── Variáveis do sistema ───────────────────────────────────────────────
+        LocalDateTime ref = sentAt != null ? sentAt : LocalDateTime.now();
+
+        fixed.put(FixedVariables.DATA_HOJE,       ref.format(FMT_DATA));
+        fixed.put(FixedVariables.DATA_HORA_ENVIO, ref.format(FMT_DATA_HORA));
+        fixed.put(FixedVariables.MES_ANO,         MESES_PT[ref.getMonthValue()] + " de " + ref.format(FMT_ANO));
+        fixed.put(FixedVariables.ANO,             ref.format(FMT_ANO));
+        fixed.put(FixedVariables.DIA_SEMANA,      DIAS_SEMANA_PT[ref.getDayOfWeek().getValue()]);
+        fixed.put(FixedVariables.SAUDACAO,        buildSaudacao(ref.getHour()));
+
+        return resolveVariables(text, fixed);
+    }
+
     /**
      * Substitui todas as ocorrências de {@code {{variavel}}} no texto pelo valor
      * correspondente no mapa de variáveis.
      *
-     * <p>Variáveis presentes no texto mas ausentes no mapa são mantidas intactas.
+     * <p>Variáveis presentes no texto mas ausentes no mapa são mantidas intactas.</p>
+     *
+     * <p><strong>Nota sobre {@code VARIABLE_PATTERN}:</strong> o padrão usa a flag {@code g}
+     * implicitamente via {@code Matcher}. O {@code Matcher} é criado a cada chamada, portanto
+     * não há risco de estado residual no {@code lastIndex} entre invocações.</p>
      *
      * @param template  texto original contendo lacunas no formato {@code {{variavel}}}
      * @param variables mapa de chave-valor para substituição das lacunas
@@ -296,5 +399,27 @@ public class EmailService {
         matcher.appendTail(result);
 
         return result.toString();
+    }
+
+    // =========================================================================
+    // Auxiliares privados
+    // =========================================================================
+
+    /**
+     * Retorna a saudação adequada com base na hora do dia.
+     *
+     * <ul>
+     *   <li>0h–11h59 → "Bom dia"</li>
+     *   <li>12h–17h59 → "Boa tarde"</li>
+     *   <li>18h–23h59 → "Boa noite"</li>
+     * </ul>
+     *
+     * @param hora hora do dia (0–23).
+     * @return string de saudação em português.
+     */
+    private String buildSaudacao(int hora) {
+        if (hora < 12) return "Bom dia";
+        if (hora < 18) return "Boa tarde";
+        return "Boa noite";
     }
 }
