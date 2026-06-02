@@ -1,21 +1,25 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useUserFormViewModel } from '../../viewmodels/useUserFormViewModel';
-import Button from '../components/common/Button';
-import InputField from '../components/common/InputField';
+import Button        from '../components/common/Button';
+import InputField    from '../components/common/InputField';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { ROUTES } from '../../core/constants/appConstants';
-import styles from './UserFormPage.module.css';
+import { ROUTES, UI } from '../../core/constants/appConstants';
+import styles        from './UserFormPage.module.css';
 
 /**
- * Página de criação e edição de usuários — acessível apenas por administradores.
+ * Página de criação e edição de usuários — acessível apenas por ADMIN e GESTOR.
  *
- * <p>Atua tanto como formulário de criação (quando não há {@code :id} na rota)
- * quanto como formulário de edição. Em modo edição, o campo de e-mail é somente-
- * leitura, refletindo a imutabilidade imposta pelo backend.</p>
+ * Campos:
+ *  - Nome completo (obrigatório)
+ *  - E-mail (obrigatório na criação, read-only na edição)
+ *  - Papel/Role (ADMIN, GESTOR ou USER — GESTOR não pode selecionar ADMIN/GESTOR)
+ *  - Status ativo (checkbox)
+ *  - Cargo (opcional)
+ *  - Célula (obrigatório na criação, editável na edição)
  *
- * <p>A senha nunca é exibida nem gerenciada neste formulário — ela é gerada
- * automaticamente pelo servidor e enviada por e-mail ao usuário.</p>
+ * A senha e a matrícula nunca são gerenciadas neste formulário — ambas são
+ * geradas automaticamente pelo servidor.
  *
  * @component
  * @returns {JSX.Element}
@@ -30,6 +34,7 @@ export default function UserFormPage() {
     isLoading,
     isSubmitting,
     isEditMode,
+    celulas,
     handleChange,
     handleSubmit,
   } = useUserFormViewModel();
@@ -42,13 +47,14 @@ export default function UserFormPage() {
 
   return (
     <main className={styles.page} aria-labelledby="form-title">
-      {/* Cabeçalho */}
+
+      {/* ── Cabeçalho ── */}
       <header className={styles.header}>
         <Button
           variant="ghost"
           size="sm"
           icon={ArrowLeft}
-          onClick={() => navigate('/users')}
+          onClick={() => navigate(ROUTES.USERS)}
           aria-label="Voltar para listagem de usuários"
         >
           Usuários
@@ -56,14 +62,14 @@ export default function UserFormPage() {
         <h1 id="form-title" className={styles.title}>{pageTitle}</h1>
       </header>
 
-      {/* Erro de submissão */}
+      {/* ── Erro de submissão ── */}
       {submitError && (
         <div role="alert" aria-live="assertive" className={styles.errorBanner}>
           {submitError}
         </div>
       )}
 
-      {/* Formulário */}
+      {/* ── Formulário ── */}
       <form
         className={styles.card}
         onSubmit={handleSubmit}
@@ -71,6 +77,7 @@ export default function UserFormPage() {
         aria-label={pageTitle}
       >
         <div className={styles.grid}>
+
           {/* Nome */}
           <InputField
             label="Nome completo"
@@ -93,7 +100,11 @@ export default function UserFormPage() {
             error={fieldErrors.email}
             required={!isEditMode}
             readOnly={isEditMode}
-            hint={isEditMode ? 'O e-mail não pode ser alterado após a criação.' : 'A senha de acesso será enviada para este endereço.'}
+            hint={
+              isEditMode
+                ? 'O e-mail não pode ser alterado após a criação.'
+                : 'A senha de acesso será enviada para este endereço.'
+            }
             autoComplete="email"
           />
 
@@ -105,19 +116,73 @@ export default function UserFormPage() {
             <select
               id="role"
               name="role"
-              className={`${styles.select} ${fieldErrors.role ? styles.selectError : ''}`}
+              className={[styles.select, fieldErrors.role ? styles.selectError : '']
+                .filter(Boolean).join(' ')}
               value={fields.role}
               onChange={handleChange}
               required
               aria-required="true"
               aria-describedby={fieldErrors.role ? 'role-error' : undefined}
             >
-              <option value="USER">Usuário</option>
-              <option value="ADMIN">Administrador</option>
+              <option value="USER">{UI.USER_ROLE_LABEL.USER}</option>
+              <option value="GESTOR">{UI.USER_ROLE_LABEL.GESTOR}</option>
+              <option value="ADMIN">{UI.USER_ROLE_LABEL.ADMIN}</option>
             </select>
             {fieldErrors.role && (
-              <span id="role-error" className={styles.error} role="alert">
+              <span id="role-error" className={styles.fieldError} role="alert">
                 {fieldErrors.role}
+              </span>
+            )}
+          </div>
+
+          {/* Cargo */}
+          <InputField
+            label="Cargo"
+            name="cargo"
+            type="text"
+            value={fields.cargo}
+            onChange={handleChange}
+            error={fieldErrors.cargo}
+            placeholder="Ex: Desenvolvedor Sênior"
+            hint="Campo opcional."
+            autoComplete="organization-title"
+          />
+
+          {/* Célula */}
+          <div className={styles.fieldGroup}>
+            <label htmlFor="celulaId" className={styles.label}>
+              Célula{!isEditMode && (
+                <span aria-hidden="true" className={styles.required}> *</span>
+              )}
+            </label>
+            <select
+              id="celulaId"
+              name="celulaId"
+              className={[styles.select, fieldErrors.celulaId ? styles.selectError : '']
+                .filter(Boolean).join(' ')}
+              value={fields.celulaId}
+              onChange={handleChange}
+              required={!isEditMode}
+              aria-required={!isEditMode}
+              aria-describedby={fieldErrors.celulaId ? 'celulaId-error' : 'celulaId-hint'}
+            >
+              <option value="">Selecione uma célula…</option>
+              {celulas.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                  {c.gestor ? ` — Gestor: ${c.gestor.nome}` : ''}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.celulaId ? (
+              <span id="celulaId-error" className={styles.fieldError} role="alert">
+                {fieldErrors.celulaId}
+              </span>
+            ) : (
+              <span id="celulaId-hint" className={styles.fieldHint}>
+                {isEditMode
+                  ? 'Altere a célula do usuário se necessário.'
+                  : 'Todo usuário deve pertencer a uma célula.'}
               </span>
             )}
           </div>
@@ -139,11 +204,11 @@ export default function UserFormPage() {
           </div>
         </div>
 
-        {/* Informativo — senha */}
+        {/* Informativo — senha e matrícula */}
         {!isEditMode && (
           <p className={styles.passwordHint} aria-live="polite">
-            Uma senha temporária de 8 caracteres será gerada automaticamente e enviada
-            ao e-mail informado após a criação do usuário.
+            Uma senha temporária de 8 caracteres e uma matrícula única serão geradas
+            automaticamente e enviadas ao e-mail informado após a criação do usuário.
           </p>
         )}
 
@@ -152,7 +217,7 @@ export default function UserFormPage() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => navigate('/users')}
+            onClick={() => navigate(ROUTES.USERS)}
             disabled={isSubmitting}
           >
             Cancelar
