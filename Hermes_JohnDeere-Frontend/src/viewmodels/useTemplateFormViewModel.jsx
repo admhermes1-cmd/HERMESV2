@@ -199,7 +199,7 @@ export function useTemplateFormViewModel() {
     versions,
     selectedVersion,
     extractedVariables,
-    isEditMode,      // ← nome que a TemplateFormPage espera
+    isEditMode,      
     isLoading,
     isSaving,
     error,

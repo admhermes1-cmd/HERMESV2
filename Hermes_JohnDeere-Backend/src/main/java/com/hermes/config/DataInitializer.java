@@ -1,7 +1,9 @@
 package com.hermes.config;
 
+import com.hermes.entity.Celula;
 import com.hermes.entity.User;
 import com.hermes.entity.enums.UserRole;
+import com.hermes.repository.CelulaRepository;
 import com.hermes.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,146 +12,141 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Inicializador de dados do HERMES — executa após o contexto Spring estar completamente pronto.
  *
- * <p>Responsável pelo seed inicial do banco de dados, criando o usuário administrador
- * padrão caso ainda não exista. Implementa {@link ApplicationRunner} para garantir que
- * o JPA e todos os beans estejam disponíveis antes da execução.</p>
+ * <p>Responsável pelo seed inicial do banco de dados:</p>
+ * <ol>
+ *   <li>Cria o usuário administrador padrão caso ainda não exista.</li>
+ *   <li>Cria a célula padrão "C1" caso ainda não exista.</li>
+ *   <li>Vincula o admin à célula C1 (para satisfazer a invariante de célula obrigatória).</li>
+ * </ol>
  *
- * <p><b>Idempotência:</b> A criação do admin é verificada pelo email antes de inserir,
- * tornando o seed seguro para execuções repetidas (reinicializações, deploys).</p>
+ * <p><strong>Idempotência:</strong> Todas as verificações usam {@code existsByEmail} /
+ * {@code existsByNome} antes de inserir, tornando o seed seguro para múltiplas execuções.</p>
  *
- * <p><b>Falha segura:</b> Erros no seed são capturados e logados sem propagar a exceção,
- * evitando que um problema de inicialização de dados derrube toda a aplicação.</p>
- *
- * <p><b>Configuração via application.yml:</b></p>
- * <pre>
- * hermes:
- *   admin:
- *     email: ${ADMIN_EMAIL:admin@hermes.com}
- *     password: ${ADMIN_PASSWORD:admin123}
- *     name: ${ADMIN_NAME:Administrador}
- * </pre>
- *
- * @see ApplicationRunner
- * @see UserRepository
+ * <p><strong>Matrícula do admin:</strong> O admin é o primeiro usuário, então recebe
+ * matrícula {@code 10000} diretamente no seed.</p>
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final UserRepository   userRepository;
+    private final CelulaRepository celulaRepository;
+    private final PasswordEncoder  passwordEncoder;
 
-    /**
-     * E-mail do usuário administrador padrão.
-     * Configurável via variável de ambiente {@code ADMIN_EMAIL}.
-     * Valor padrão: {@code admin@hermes.com}
-     */
     @Value("${hermes.admin.email}")
     private String adminEmail;
 
-    /**
-     * Senha do usuário administrador padrão.
-     *
-     * <p>Em desenvolvimento, aceita senhas simples definidas em {@code application-dev.yml}.
-     * Em produção, exigir senha forte via variável de ambiente {@code ADMIN_PASSWORD}.</p>
-     *
-     * <p><b>ATENÇÃO:</b> Nunca commitar senhas reais no repositório.
-     * Sempre usar variáveis de ambiente em ambientes não-dev.</p>
-     */
     @Value("${hermes.admin.password}")
     private String adminPassword;
 
-    /**
-     * Nome de exibição do usuário administrador padrão.
-     * Configurável via variável de ambiente {@code ADMIN_NAME}.
-     * Valor padrão: {@code Administrador}
-     */
     @Value("${hermes.admin.name}")
     private String adminName;
 
-    /**
-     * Ponto de entrada do inicializador — executado automaticamente pelo Spring Boot
-     * após o contexto estar pronto e antes da aplicação começar a aceitar requisições.
-     *
-     * <p>Delega para {@link #createAdminUserIfNotExists()} para manter o método
-     * de entrada limpo e permitir extensão futura com outros seeds.</p>
-     *
-     * @param args argumentos da aplicação (não utilizados)
-     */
+    /** Matrícula fixa do admin — sempre o primeiro usuário do sistema. */
+    private static final int ADMIN_MATRICULA = 10000;
+
+    /** Nome da célula padrão criada no seed. */
+    private static final String CELULA_PADRAO_NOME = "C1";
+
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         log.info("DataInitializer iniciado — verificando dados essenciais");
-        createAdminUserIfNotExists();
+        try {
+            User admin = createAdminUserIfNotExists();
+            createCelulaPadraoIfNotExists(admin);
+        } catch (Exception e) {
+            log.error(
+                "Erro durante inicialização de dados. A aplicação continuará normalmente. Causa: {}",
+                e.getMessage(), e
+            );
+        }
         log.info("DataInitializer concluído com sucesso");
     }
 
     /**
-     * Cria o usuário administrador padrão se ainda não existir no banco de dados.
+     * Cria o usuário administrador padrão se ainda não existir.
+     * Retorna o admin (existente ou recém-criado) para uso no seed da célula.
      *
-     * <p><b>Fluxo de execução:</b></p>
-     * <ol>
-     *   <li>Verifica se já existe um usuário com o email configurado</li>
-     *   <li>Se existir: loga info e retorna sem alterar nada (idempotente)</li>
-     *   <li>Se não existir: cria o admin com senha hasheada e persiste</li>
-     *   <li>Emite aviso de segurança para alterar a senha em produção</li>
-     * </ol>
-     *
-     * <p><b>API Key:</b> Gerada automaticamente pelo {@code @PrePersist} da entidade
-     * {@code User} — não é necessário definir aqui.</p>
-     *
-     * <p><b>Tratamento de erro:</b> Qualquer exceção é capturada, logada com nível
-     * {@code ERROR} e suprimida — uma falha no seed não deve impedir a inicialização
-     * da aplicação, pois os dados essenciais podem já existir de execuções anteriores.</p>
+     * @return entidade {@link User} do administrador.
      */
-    private void createAdminUserIfNotExists() {
-        try {
-            // Verifica idempotência pelo email — evita duplicação em reinicializações.
-            if (userRepository.existsByEmail(adminEmail)) {
-                log.info("Usuário admin já existe — seed ignorado. Email: {}", adminEmail);
-                return;
-            }
-
-            log.info("Criando usuário administrador padrão: {}", adminEmail);
-
-            User admin = User.builder()
-                .name(adminName)
-                .email(adminEmail)
-                // Senha armazenada como hash BCrypt — nunca em texto plano.
-                .password(passwordEncoder.encode(adminPassword))
-                .role(UserRole.ADMIN)
-                // Admin ativo imediatamente, sem necessidade de confirmação.
-                .active(true)
-                // apiKey é gerada automaticamente no @PrePersist da entidade User.
-                .build();
-
-            userRepository.save(admin);
-
-            log.info("Usuário admin criado com sucesso: {}", adminEmail);
-
-            // Aviso de segurança explícito — deve aparecer nos logs de deploy
-            // para lembrar o time de ops de configurar a senha forte em produção.
-            log.warn("══════════════════════════════════════════════════════════════");
-            log.warn("  ATENÇÃO: Altere a senha do admin em produção via variável");
-            log.warn("  de ambiente ADMIN_PASSWORD. Nunca use a senha padrão em");
-            log.warn("  ambientes expostos à internet.");
-            log.warn("══════════════════════════════════════════════════════════════");
-
-        } catch (Exception e) {
-            // Falha no seed não derruba a aplicação — pode ser erro de conexão
-            // temporário ou race condition em deploys blue-green com múltiplas instâncias.
-            // Os dados podem já ter sido inseridos por outra instância.
-            log.error(
-                "Erro ao criar usuário admin durante inicialização. " +
-                "A aplicação continuará normalmente. Verifique o banco de dados manualmente. " +
-                "Causa: {}",
-                e.getMessage(),
-                e
-            );
+    private User createAdminUserIfNotExists() {
+        if (userRepository.existsByEmail(adminEmail)) {
+            log.info("Usuário admin já existe — seed ignorado. Email: {}", adminEmail);
+            return userRepository.findByEmail(adminEmail).orElseThrow();
         }
+
+        log.info("Criando usuário administrador padrão: {}", adminEmail);
+
+        User admin = User.builder()
+            .name(adminName)
+            .email(adminEmail)
+            .password(passwordEncoder.encode(adminPassword))
+            .role(UserRole.ADMIN)
+            .active(true)
+            .matricula(ADMIN_MATRICULA)
+            // mustChangePassword = false para o admin seed — ele já conhece a senha configurada.
+            .mustChangePassword(false)
+            .build();
+
+        User saved = userRepository.save(admin);
+
+        log.info("Usuário admin criado com sucesso: email={}, matricula={}", adminEmail, ADMIN_MATRICULA);
+        log.warn("══════════════════════════════════════════════════════════════");
+        log.warn("  ATENÇÃO: Altere a senha do admin em produção via variável");
+        log.warn("  de ambiente ADMIN_PASSWORD.");
+        log.warn("══════════════════════════════════════════════════════════════");
+
+        return saved;
+    }
+
+    /**
+     * Cria a célula padrão "C1" e vincula o admin a ela, se ainda não existir.
+     *
+     * <p>A célula C1 não tem gestor definido no seed (admin tem role ADMIN, não GESTOR).
+     * O gestor pode ser atribuído posteriormente via tela de Células.</p>
+     *
+     * @param admin entidade do administrador para vincular à célula.
+     */
+    private void createCelulaPadraoIfNotExists(User admin) {
+        if (celulaRepository.existsByNome(CELULA_PADRAO_NOME)) {
+            log.info("Célula '{}' já existe — seed ignorado.", CELULA_PADRAO_NOME);
+
+            // Garante que o admin está vinculado à célula existente
+            if (admin.getCelula() == null) {
+                celulaRepository.findAll().stream()
+                    .filter(c -> CELULA_PADRAO_NOME.equals(c.getNome()))
+                    .findFirst()
+                    .ifPresent(celula -> {
+                        admin.setCelula(celula);
+                        userRepository.save(admin);
+                        log.info("Admin vinculado à célula '{}' existente.", CELULA_PADRAO_NOME);
+                    });
+            }
+            return;
+        }
+
+        log.info("Criando célula padrão '{}'", CELULA_PADRAO_NOME);
+
+        // Admin tem role ADMIN, não GESTOR — célula criada sem gestor no seed.
+        // O gestor deve ser atribuído manualmente via interface após a criação de um GESTOR.
+        Celula celulaPadrao = Celula.builder()
+            .nome(CELULA_PADRAO_NOME)
+            .gestor(null)
+            .build();
+
+        Celula savedCelula = celulaRepository.save(celulaPadrao);
+
+        // Vincula o admin à célula C1
+        admin.setCelula(savedCelula);
+        userRepository.save(admin);
+
+        log.info("Célula '{}' criada e admin vinculado. id={}", CELULA_PADRAO_NOME, savedCelula.getId());
     }
 }
