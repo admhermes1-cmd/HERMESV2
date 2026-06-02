@@ -12,8 +12,10 @@ import {
   X,
   Users,
   Upload,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '../../core/auth/useAuth';
+import { UserRole } from '../../core/constants/appConstants';
 import styles from './MainLayout.module.css';
 
 /** Chave de persistência no localStorage para estado da sidebar */
@@ -21,16 +23,17 @@ const SIDEBAR_STORAGE_KEY = 'hermes_sidebar_collapsed';
 
 /**
  * Mapa de rotas → títulos de página exibidos no header.
- * Ajuste as chaves conforme os values de ROUTES no seu appConstants.
  */
 const ROUTE_TITLES = {
-  '/dashboard': 'Dashboard',
-  '/templates': 'Templates',
-  '/templates/new': 'Novo Template',
-  '/notifications/new': 'Nova Notificação',
+  '/dashboard':          'Dashboard',
+  '/templates':          'Templates',
+  '/templates/new':      'Novo Template',
+  '/notifications/new':  'Nova Notificação',
   '/notifications/bulk': 'Envio em Massa',
-  '/users': 'Usuários',
-  '/users/new': 'Novo Usuário',
+  '/users':              'Usuários',
+  '/users/new':          'Novo Usuário',
+  '/celulas':            'Células',
+  '/celulas/new':        'Nova Célula',
 };
 
 /** Retorna o título da rota ativa mais específica. */
@@ -38,7 +41,6 @@ function usePageTitle() {
   const matches = useMatches();
   if (!matches.length) return 'HERMES';
 
-  // Percorre do mais específico ao mais genérico
   for (let i = matches.length - 1; i >= 0; i--) {
     const title = ROUTE_TITLES[matches[i].pathname];
     if (title) return title;
@@ -59,18 +61,28 @@ function getInitials(name = '') {
     .join('');
 }
 
+/**
+ * Retorna o label de role para exibição no rodapé da sidebar e no badge do header.
+ * @param {string} role
+ * @returns {string}
+ */
+function getRoleLabel(role) {
+  if (role === UserRole.ADMIN)  return 'Administrador';
+  if (role === UserRole.GESTOR) return 'Gestor';
+  return 'Usuário';
+}
+
 /* ─────────────────────────────────────────────────────────── */
 
 /**
  * @component MainLayout
  * @description Layout principal para todas as telas autenticadas do HERMES.
  *
- * Estrutura:
- * - **Sidebar** lateral esquerda com logo, navegação principal e rodapé de usuário.
- *   - Colapsa em desktop (largura reduzida, apenas ícones) — estado persistido em `localStorage`.
- *   - Em mobile (< 768px) vira um drawer com overlay.
- * - **Header** superior com título da página, badge de role e ícone de notificação.
- * - **Main** área de conteúdo que renderiza `<Outlet />`.
+ * Atualizado para suporte ao role GESTOR:
+ *  - Item "Células" na sidebar visível para ADMIN e GESTOR
+ *  - Item "Usuários" na sidebar visível para ADMIN e GESTOR
+ *  - Badge de role no header exibe "GESTOR" corretamente
+ *  - Rodapé da sidebar exibe label correto por role
  *
  * @returns {JSX.Element}
  */
@@ -78,6 +90,11 @@ export default function MainLayout() {
   const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const pageTitle = usePageTitle();
+
+  const userRole = user?.role ?? UserRole.USER;
+  const isGestor = userRole === UserRole.GESTOR;
+  const canManageUsers  = isAdmin || isGestor;
+  const canManageCelulas = isAdmin || isGestor;
 
   /* Estado: sidebar colapsada (desktop) */
   const [collapsed, setCollapsed] = useState(() => {
@@ -91,16 +108,12 @@ export default function MainLayout() {
   /* Estado: drawer aberto (mobile) */
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  /* Persiste o estado de colapso */
   useEffect(() => {
     try {
       localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
-    } catch {
-      /* ignora erros de localStorage */
-    }
+    } catch { /* ignora */ }
   }, [collapsed]);
 
-  /* Fecha o drawer ao redimensionar para desktop */
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)');
     const handler = (e) => { if (e.matches) setDrawerOpen(false); };
@@ -108,7 +121,6 @@ export default function MainLayout() {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  /* Bloqueia scroll do body quando o drawer mobile está aberto */
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -123,27 +135,27 @@ export default function MainLayout() {
     navigate('/login', { replace: true });
   }, [logout, navigate]);
 
-  const initials = getInitials(user?.name);
+  const initials  = getInitials(user?.name);
+  const roleLabel = getRoleLabel(userRole);
 
-  /* ── Itens de navegação — calculados aqui para reagir ao papel do usuário ── */
+  /* ── Itens de navegação ── */
   const NAV_ITEMS = [
-    { to: '/dashboard',          label: 'Dashboard',        Icon: LayoutDashboard },
-    { to: '/templates',          label: 'Templates',         Icon: FileText        },
-    { to: '/notifications/new',  label: 'Nova Notificação',  Icon: Send            },
-    { to: '/notifications/bulk', label: 'Envio em Massa',    Icon: Upload          },
-    ...(isAdmin ? [{ to: '/users', label: 'Usuários', Icon: Users }] : []),
-  ];
+    { to: '/dashboard',          label: 'Dashboard',       Icon: LayoutDashboard, show: true },
+    { to: '/templates',          label: 'Templates',        Icon: FileText,        show: true },
+    { to: '/notifications/new',  label: 'Nova Notificação', Icon: Send,            show: true },
+    { to: '/notifications/bulk', label: 'Envio em Massa',   Icon: Upload,          show: true },
+    { to: '/users',              label: 'Usuários',         Icon: Users,           show: canManageUsers },
+    { to: '/celulas',            label: 'Células',          Icon: Building2,       show: canManageCelulas },
+  ].filter((item) => item.show);
 
-  /* ── Render ──────────────────────────────────────────── */
+  /* ── Render ── */
   return (
     <div
       className={[
         styles.root,
-        collapsed   ? styles.rootCollapsed   : '',
-        drawerOpen  ? styles.rootDrawerOpen  : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+        collapsed  ? styles.rootCollapsed  : '',
+        drawerOpen ? styles.rootDrawerOpen : '',
+      ].filter(Boolean).join(' ')}
     >
       {/* ── Overlay mobile ── */}
       {drawerOpen && (
@@ -160,11 +172,9 @@ export default function MainLayout() {
       <aside
         className={[
           styles.sidebar,
-          collapsed  ? styles.sidebarCollapsed   : '',
-          drawerOpen ? styles.sidebarDrawerOpen  : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
+          collapsed  ? styles.sidebarCollapsed  : '',
+          drawerOpen ? styles.sidebarDrawerOpen : '',
+        ].filter(Boolean).join(' ')}
         aria-label="Navegação principal"
       >
         {/* ── Logo ── */}
@@ -184,8 +194,7 @@ export default function MainLayout() {
                   onClick={closeDrawer}
                   className={({ isActive }) =>
                     [styles.navLink, isActive ? styles.navLinkActive : '']
-                      .filter(Boolean)
-                      .join(' ')
+                      .filter(Boolean).join(' ')
                   }
                   aria-label={collapsed ? label : undefined}
                   title={collapsed ? label : undefined}
@@ -209,9 +218,7 @@ export default function MainLayout() {
               <span className={styles.userName} title={user?.name}>
                 {user?.name ?? '—'}
               </span>
-              <span className={styles.userRole}>
-                {isAdmin ? 'Administrador' : 'Usuário'}
-              </span>
+              <span className={styles.userRole}>{roleLabel}</span>
             </div>
           )}
 
@@ -235,11 +242,10 @@ export default function MainLayout() {
           aria-expanded={!collapsed}
           title={collapsed ? 'Expandir' : 'Recolher'}
         >
-          {collapsed ? (
-            <ChevronRight size={14} strokeWidth={2} />
-          ) : (
-            <ChevronLeft size={14} strokeWidth={2} />
-          )}
+          {collapsed
+            ? <ChevronRight size={14} strokeWidth={2} />
+            : <ChevronLeft  size={14} strokeWidth={2} />
+          }
         </button>
       </aside>
 
@@ -249,7 +255,6 @@ export default function MainLayout() {
       <div className={styles.pageWrapper}>
         {/* ── Header ── */}
         <header className={styles.header} role="banner">
-          {/* Botão hamburguer (mobile) */}
           <button
             type="button"
             className={styles.menuBtn}
@@ -258,29 +263,27 @@ export default function MainLayout() {
             aria-expanded={drawerOpen}
             aria-controls="main-sidebar"
           >
-            {drawerOpen ? (
-              <X size={20} strokeWidth={1.75} />
-            ) : (
-              <Menu size={20} strokeWidth={1.75} />
-            )}
+            {drawerOpen
+              ? <X    size={20} strokeWidth={1.75} />
+              : <Menu size={20} strokeWidth={1.75} />
+            }
           </button>
 
-          {/* Título da página */}
           <h1 className={styles.pageTitle}>{pageTitle}</h1>
 
           <div className={styles.headerRight}>
-            {/* Badge de role */}
             <span
               className={[
                 styles.roleBadge,
-                isAdmin ? styles.roleBadgeAdmin : styles.roleBadgeUser,
+                isAdmin  ? styles.roleBadgeAdmin  :
+                isGestor ? styles.roleBadgeGestor :
+                styles.roleBadgeUser,
               ].join(' ')}
-              aria-label={`Perfil: ${isAdmin ? 'Administrador' : 'Usuário'}`}
+              aria-label={`Perfil: ${roleLabel}`}
             >
-              {isAdmin ? 'ADMIN' : 'USER'}
+              {userRole}
             </span>
 
-            {/* Ícone de notificação (somente visual) */}
             <button
               type="button"
               className={styles.bellBtn}
