@@ -32,18 +32,20 @@ import java.util.Set;
  *   <li>Deserialização e mapeamento para {@link UserImportRowDTO}</li>
  *   <li>Validação via Bean Validation</li>
  *   <li>Verificação de unicidade de e-mail no banco</li>
- *   <li>Delegação ao {@link UserService#createUser(UserRequestDTO)}, que já encapsula
- *       a persistência, geração de senha e envio do e-mail de boas-vindas</li>
+ *   <li>Delegação ao {@link UserService#createUser(UserRequestDTO, com.hermes.entity.User)},
+ *       que já encapsula a persistência, geração de senha e envio do e-mail de boas-vindas</li>
  * </ol>
  *
  * <p>Erros em linhas individuais são coletados sem abortar o restante da importação
  * (estratégia partial-commit). O resultado consolidado é retornado ao controlador.</p>
  *
- * <p><b>Roles aceitas:</b> {@code ADMIN} e {@code USER} — conforme {@link UserRole}.</p>
+ * <p><b>Nota sobre requester:</b> bulk import só é acessível por ADMIN (garantido pelo
+ * SecurityConfig), portanto {@code requester = null} é passado ao service — a validação
+ * de role-alvo no {@code UserService.validateRoleTarget()} ignora null e permite tudo.</p>
  *
- * <p><b>Nota sobre senha:</b> a coluna {@code password} do arquivo é ignorada intencionalmente.
- * O {@link UserService} sempre gera a senha internamente e a envia por e-mail, garantindo
- * que o fluxo de boas-vindas seja idêntico ao da criação manual de usuários.</p>
+ * <p><b>Nota sobre célula:</b> usuários importados em massa não têm célula obrigatória
+ * via CSV/JSON — {@code celulaId = null} é passado e o service não bloqueia a criação.
+ * A célula deve ser atribuída posteriormente via edição individual.</p>
  */
 @Slf4j
 @Service
@@ -121,7 +123,6 @@ public class BulkImportService {
             int nameIdx      = findRequiredColumn(headers, "name");
             int emailIdx     = findRequiredColumn(headers, "email");
             int roleIdx      = findRequiredColumn(headers, "role");
-            // password é opcional e ignorado no processamento, mas aceito no arquivo
             int passwordIdx  = findOptionalColumn(headers, "password");
 
             String line;
@@ -171,7 +172,7 @@ public class BulkImportService {
         List<RowFailure> failures        = new ArrayList<>();
 
         for (int i = 0; i < rows.size(); i++) {
-            int rowNumber        = i + 1; // 1-based para o relatório
+            int rowNumber        = i + 1;
             UserImportRowDTO dto = rows.get(i);
 
             try {
@@ -186,32 +187,37 @@ public class BulkImportService {
                     continue;
                 }
 
-                // 2. Role válida — apenas ADMIN e USER existem em UserRole
+                // 2. Role válida
                 UserRole role;
                 try {
                     role = UserRole.valueOf(dto.role().toUpperCase());
                 } catch (IllegalArgumentException e) {
                     failures.add(new RowFailure(rowNumber, dto.email(),
-                            "Role inválida: '" + dto.role() + "'. Valores aceitos: ADMIN, USER"));
+                            "Role inválida: '" + dto.role() + "'. Valores aceitos: ADMIN, GESTOR, USER"));
                     continue;
                 }
 
-                // 3. Unicidade de e-mail (verificação antecipada para erro descritivo)
+                // 3. Unicidade de e-mail
                 if (userRepository.existsByEmail(dto.email().toLowerCase())) {
                     failures.add(new RowFailure(rowNumber, dto.email(),
                             "E-mail já cadastrado no sistema"));
                     continue;
                 }
 
-                // 4. Delega ao UserService — ele gera a senha, persiste e envia o e-mail
+                // 4. Monta o DTO com os 6 campos do record.
+                //    cargo = null (não presente no CSV/JSON de bulk import)
+                //    celulaId = null (atribuída manualmente após a importação)
+                //    requester = null (bulk import só roda via ADMIN — validação de role-alvo ignorada)
                 UserRequestDTO userRequest = new UserRequestDTO(
                         dto.name().trim(),
                         dto.email().trim().toLowerCase(),
                         role,
-                        true  // isActive = true por padrão na importação
+                        true,   // isActive
+                        null,   // cargo — não disponível no bulk import
+                        null    // celulaId — atribuída manualmente após importação
                 );
 
-                UserResponseDTO created = userService.createUser(userRequest);
+                UserResponseDTO created = userService.createUser(userRequest, null);
 
                 successfulUsers.add(created.email());
                 log.info("Importação em massa: usuário criado — {}", created.email());
@@ -240,7 +246,6 @@ public class BulkImportService {
     private String[] normalizeCsvHeaders(String[] headers) {
         String[] normalized = new String[headers.length];
         for (int i = 0; i < headers.length; i++) {
-            // remove BOM (U+FEFF) presente em arquivos exportados pelo Excel
             normalized[i] = headers[i].trim().toLowerCase().replace("\uFEFF", "");
         }
         return normalized;
