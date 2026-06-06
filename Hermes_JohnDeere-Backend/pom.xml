@@ -65,6 +65,16 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- ── Flyway — migrations automáticas de schema ────────── -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
         <!-- ── JWT (jjwt 0.12.x — API fluente, suporte a HS256/RS256) ─ -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

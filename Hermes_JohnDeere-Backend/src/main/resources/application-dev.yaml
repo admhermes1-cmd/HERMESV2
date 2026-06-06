@@ -23,6 +23,9 @@ spring:
       maximum-pool-size: 3
       minimum-idle: 1
 
+   flyway:
+    enabled: false
+
   # ── JPA — Hibernate cria/atualiza o schema automaticamente em dev ──
   jpa:
     hibernate:
