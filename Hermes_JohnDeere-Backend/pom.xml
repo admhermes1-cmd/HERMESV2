@@ -73,6 +73,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
+            <version>${flyway.version}</version>
         </dependency>
 
         <!-- ── JWT (jjwt 0.12.x — API fluente, suporte a HS256/RS256) ─ -->
