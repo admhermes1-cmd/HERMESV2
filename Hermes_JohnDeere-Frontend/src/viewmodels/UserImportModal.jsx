@@ -10,9 +10,9 @@ import {
   RotateCcw,
   Users,
 } from "lucide-react";
-import Modal from "./common/Modal";
-import Button from "./common/Button";
-import { useUserImportViewModel } from "../../viewmodels/useUserImportViewModel";
+import Modal from "../views/components/common/Modal";
+import Button from "../views/components/common/Button";
+import { useUserImportViewModel } from "./UseUserImportViewModel";
 import styles from "./UserImportModal.module.css";
 
 /**
