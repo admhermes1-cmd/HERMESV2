@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { apiClient } from "../core/api/apiClient";
+import apiClient from "../core/api/apiClient";
 import { ENDPOINTS } from "../core/constants/appConstants";
 
 /**
