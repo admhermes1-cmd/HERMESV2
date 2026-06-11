@@ -10,153 +10,150 @@ import {
   RotateCcw,
   Users,
 } from "lucide-react";
-import { useUserImportViewModel } from "./UseUserImportViewModel";
-import Modal from "../views/components/common/Modal";
-import Button from "../views/components/common/Button";
+import Modal from "./common/Modal";
+import Button from "./common/Button";
+import { useUserImportViewModel } from "../../viewmodels/useUserImportViewModel";
 import styles from "./UserImportModal.module.css";
 
 /**
- * @typedef {Object} UserImportModalProps
- * @property {boolean}  isOpen      - Controla a visibilidade do modal
- * @property {Function} onClose     - Callback disparado ao fechar o modal
- * @property {Function} [onSuccess] - Callback opcional chamado após importação com ao menos 1 sucesso
- */
-
-/**
- * Modal de importação em massa de usuários via CSV ou JSON.
+ * Modal de importação em massa de usuários — design Opção A (claro, stepper lateral).
  *
- * Apresenta duas etapas:
- * 1. **Seleção de arquivo** — drop zone + input file, com validação client-side
- * 2. **Resultado** — resumo consolidado com lista expansível de falhas por linha
+ * Fluxo em 3 etapas controladas pelo ViewModel:
+ *   1. idle    → seleção de arquivo (drop zone)
+ *   2. preview → tabela client-side com validação linha a linha
+ *   3. result  → resumo pós-importação com accordion de falhas
  *
- * Toda lógica de estado, validação e requisição HTTP vive em {@link useUserImportViewModel}.
- * Este componente é uma View pura: apenas renderiza e delega eventos ao ViewModel.
+ * Localização: src/views/components/UserImportModal.jsx
  *
- * Localização: src/viewmodels/UserImportModal.jsx
- *
- * @param {UserImportModalProps} props
+ * @param {{ isOpen: boolean, onClose: () => void, onSuccess?: () => void }} props
  */
 export default function UserImportModal({ isOpen, onClose, onSuccess }) {
-  const {
-    selectedFile,
-    isLoading,
-    error,
-    result,
-    stage,
-    handleFileSelect,
-    handleDrop,
-    handleImport,
-    handleReset,
-    cancel,
-  } = useUserImportViewModel();
+  const vm = useUserImportViewModel();
 
-  const fileInputRef                    = useRef(null);
-  const [isDragOver, setIsDragOver]     = useState(false);
+  const fileInputRef              = useRef(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [failuresOpen, setFailuresOpen] = useState(false);
 
-  // ---------------------------------------------------------------------------
-  // Drag handlers (UI-only state)
-  // ---------------------------------------------------------------------------
+  // ── Drag handlers ─────────────────────────────────────────────────────
 
-  const onDragOver = useCallback((e) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
-
+  const onDragOver  = useCallback((e) => { e.preventDefault(); setIsDragOver(true);  }, []);
   const onDragLeave = useCallback(() => setIsDragOver(false), []);
+  const onDrop      = useCallback((e) => { setIsDragOver(false); vm.handleDrop(e); }, [vm]);
 
-  const onDrop = useCallback(
-    (e) => {
-      setIsDragOver(false);
-      handleDrop(e);
-    },
-    [handleDrop]
-  );
-
-  // ---------------------------------------------------------------------------
-  // Close / finish
-  // ---------------------------------------------------------------------------
+  // ── Close ─────────────────────────────────────────────────────────────
 
   const handleClose = () => {
-    cancel();
-    handleReset();
+    vm.handleReset();
     onClose();
   };
 
   const handleFinish = () => {
-    const successes = result?.successCount ?? result?.success ?? 0;
-    if (successes > 0) onSuccess?.();
+    if (vm.result?.successCount > 0) onSuccess?.();
     handleClose();
   };
 
-  // ---------------------------------------------------------------------------
-  // Template download (client-side, sem request ao servidor)
-  // ---------------------------------------------------------------------------
+  // ── Template downloads ─────────────────────────────────────────────────
 
-  const downloadCsvTemplate = () => {
-    const content = [
-      "name,email,role,password",
-      "João Silva,joao@empresa.com,USER,",
-      "Maria Souza,maria@empresa.com,ADMIN,senha123",
-    ].join("\n");
-    triggerDownload(content, "template_usuarios.csv", "text/csv;charset=utf-8;");
-  };
-
-  const downloadJsonTemplate = () => {
-    const content = JSON.stringify(
-      [
-        { name: "João Silva",  email: "joao@empresa.com",  role: "USER",    password: "" },
-        { name: "Maria Souza", email: "maria@empresa.com", role: "ADMIN", password: "senha123" },
-      ],
-      null,
-      2
-    );
-    triggerDownload(content, "template_usuarios.json", "application/json");
-  };
-
-  const triggerDownload = (content, filename, mimeType) => {
-    const blob = new Blob([content], { type: mimeType });
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href     = url;
-    link.download = filename;
+  const triggerDownload = (content, filename, mime) => {
+    const url  = URL.createObjectURL(new Blob([content], { type: mime }));
+    const link = Object.assign(document.createElement("a"), { href: url, download: filename });
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  // ---------------------------------------------------------------------------
-  // Render helpers
-  // ---------------------------------------------------------------------------
+  const downloadCsv = () =>
+    triggerDownload(
+      "name,email,role,password\nJoão Silva,joao@empresa.com,USER,\nMaria Souza,maria@empresa.com,ADMIN,senha123",
+      "template_usuarios.csv",
+      "text/csv;charset=utf-8;"
+    );
 
-  const renderHeader = () => (
-    <div className={styles.header}>
-      <div className={styles.headerIcon}>
-        <Users size={20} aria-hidden="true" />
+  const downloadJson = () =>
+    triggerDownload(
+      JSON.stringify(
+        [
+          { name: "João Silva",  email: "joao@empresa.com",  role: "USER",  password: "" },
+          { name: "Maria Souza", email: "maria@empresa.com", role: "ADMIN", password: "senha123" },
+        ],
+        null,
+        2
+      ),
+      "template_usuarios.json",
+      "application/json"
+    );
+
+  // ── Stepper ────────────────────────────────────────────────────────────
+
+  const steps = [
+    { key: "idle",    label: "Arquivo",  desc: "CSV ou JSON" },
+    { key: "preview", label: "Preview",  desc: "Validar dados" },
+    { key: "result",  label: "Resultado", desc: "Criar usuários" },
+  ];
+
+  const stepIndex = { idle: 0, preview: 1, result: 2 }[vm.stage];
+
+  const renderStepper = () => (
+    <aside className={styles.sidebar}>
+      <div className={styles.brand}>
+        <div className={styles.brandIcon} aria-hidden="true">
+          <Users size={17} />
+        </div>
+        <span className={styles.brandName}>HERMES</span>
       </div>
-      <div className={styles.headerText}>
-        <h2 className={styles.title}>
-          {stage === "result" ? "Resultado da Importação" : "Importar Usuários em Massa"}
-        </h2>
-        <p className={styles.subtitle}>
-          {stage === "result"
-            ? "Confira o resumo da operação abaixo"
-            : "Envie um arquivo .csv ou .json com os dados dos usuários"}
-        </p>
-      </div>
-    </div>
+
+      <nav className={styles.stepList} aria-label="Etapas da importação">
+        {steps.map((step, i) => {
+          const isDone    = i < stepIndex;
+          const isActive  = i === stepIndex;
+          const isPending = i > stepIndex;
+
+          return (
+            <div key={step.key}>
+              <div
+                className={[
+                  styles.stepItem,
+                  isDone    ? styles.stepDone    : "",
+                  isActive  ? styles.stepActive  : "",
+                  isPending ? styles.stepPending : "",
+                ].join(" ")}
+                aria-current={isActive ? "step" : undefined}
+              >
+                <div className={styles.stepNum} aria-hidden="true">
+                  {isDone ? "✓" : i + 1}
+                </div>
+                <div className={styles.stepText}>
+                  <span className={styles.stepTitle}>{step.label}</span>
+                  {(isDone || isActive) && (
+                    <span className={styles.stepDesc}>
+                      {isDone && step.key === "idle" && vm.selectedFile
+                        ? vm.selectedFile.name
+                        : step.desc}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {i < steps.length - 1 && (
+                <div className={styles.stepConnector} aria-hidden="true" />
+              )}
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
   );
 
-  const renderUploadStage = () => (
-    <div className={styles.uploadStage}>
+  // ── Etapa 1: Upload ─────────────────────────────────────────────────────
+
+  const renderIdle = () => (
+    <div className={styles.idleStage}>
       {/* Drop zone */}
       <div
         role="button"
         tabIndex={0}
-        aria-label="Área de arrastar e soltar arquivo. Clique para selecionar."
+        aria-label="Área de upload. Arraste um arquivo ou pressione Enter para selecionar."
         className={[
           styles.dropZone,
-          isDragOver    ? styles.dropZoneDragOver : "",
-          selectedFile  ? styles.dropZoneHasFile  : "",
+          isDragOver ? styles.dropZoneDragOver : "",
         ].join(" ")}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
@@ -168,65 +165,42 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
           ref={fileInputRef}
           type="file"
           accept=".csv,.json,text/csv,application/json"
-          className={styles.fileInput}
-          aria-hidden="true"
+          className={styles.hiddenInput}
           tabIndex={-1}
-          onChange={handleFileSelect}
+          aria-hidden="true"
+          onChange={vm.handleFileSelect}
         />
-
-        {selectedFile ? (
-          <div className={styles.filePreview}>
-            <FileText size={28} className={styles.fileIcon} aria-hidden="true" />
-            <div className={styles.fileInfo}>
-              <span className={styles.fileName}>{selectedFile.name}</span>
-              <span className={styles.fileSize}>
-                {(selectedFile.size / 1024).toFixed(1)} KB
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.dropPrompt}>
-            <Upload size={28} className={styles.uploadIcon} aria-hidden="true" />
-            <p className={styles.dropText}>
-              Arraste seu arquivo aqui ou{" "}
-              <span className={styles.dropLink}>clique para selecionar</span>
-            </p>
-            <p className={styles.dropHint}>CSV ou JSON · Máximo 5 MB</p>
-          </div>
-        )}
+        <div className={styles.dropIcon} aria-hidden="true">
+          <Upload size={24} />
+        </div>
+        <p className={styles.dropTitle}>
+          Arraste o arquivo aqui ou{" "}
+          <span className={styles.dropLink}>clique para selecionar</span>
+        </p>
+        <p className={styles.dropHint}>CSV ou JSON · máx 5 MB</p>
+        <div className={styles.formatChips} aria-hidden="true">
+          <span className={styles.chip}>.csv</span>
+          <span className={styles.chip}>.json</span>
+        </div>
       </div>
 
-      {/* Mensagem de erro */}
-      {error && (
+      {/* Erro */}
+      {vm.error && (
         <div role="alert" className={styles.errorBanner}>
-          <AlertCircle size={16} aria-hidden="true" />
-          <span>{error}</span>
+          <AlertCircle size={15} aria-hidden="true" />
+          <span>{vm.error}</span>
         </div>
       )}
 
-      {/* Templates para download */}
-      <div className={styles.templates}>
-        <p className={styles.templatesLabel}>Baixar modelo:</p>
-        <div className={styles.templateButtons}>
-          <button
-            type="button"
-            className={styles.templateBtn}
-            onClick={downloadCsvTemplate}
-            aria-label="Baixar modelo CSV"
-          >
-            <Download size={13} aria-hidden="true" />
-            template.csv
-          </button>
-          <button
-            type="button"
-            className={styles.templateBtn}
-            onClick={downloadJsonTemplate}
-            aria-label="Baixar modelo JSON"
-          >
-            <Download size={13} aria-hidden="true" />
-            template.json
-          </button>
-        </div>
+      {/* Templates */}
+      <div className={styles.templateRow}>
+        <span className={styles.templateLabel}>Baixar modelo:</span>
+        <button type="button" className={styles.templateBtn} onClick={downloadCsv}>
+          <Download size={12} aria-hidden="true" /> template.csv
+        </button>
+        <button type="button" className={styles.templateBtn} onClick={downloadJson}>
+          <Download size={12} aria-hidden="true" /> template.json
+        </button>
       </div>
 
       {/* Legenda de colunas */}
@@ -236,14 +210,14 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
           {[
             { col: "name",     req: true,  desc: "Nome completo" },
             { col: "email",    req: true,  desc: "E-mail único" },
-            { col: "role",     req: true,  desc: "USER, MANAGER ou ADMIN" },
+            { col: "role",     req: true,  desc: "ADMIN ou USER" },
             { col: "password", req: false, desc: "Opcional — gerada se vazia" },
           ].map(({ col, req, desc }) => (
             <div key={col} className={styles.legendRow}>
               <code className={styles.legendCode}>{col}</code>
-              {req
-                ? <span className={styles.legendRequired}>obrigatório</span>
-                : <span className={styles.legendOptional}>opcional</span>}
+              <span className={req ? styles.badgeRequired : styles.badgeOptional}>
+                {req ? "obrigatório" : "opcional"}
+              </span>
               <span className={styles.legendDesc}>{desc}</span>
             </div>
           ))}
@@ -252,63 +226,136 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
     </div>
   );
 
-  const renderResultStage = () => {
+  // ── Etapa 2: Preview ────────────────────────────────────────────────────
+
+  const renderPreview = () => (
+    <div className={styles.previewStage}>
+      {/* Cabeçalho com contadores */}
+      <div className={styles.previewHeader}>
+        <div className={styles.previewFileInfo}>
+          <FileText size={16} aria-hidden="true" className={styles.previewFileIcon} />
+          <span className={styles.previewFileName}>{vm.selectedFile?.name}</span>
+        </div>
+        <div className={styles.previewStats}>
+          <span className={styles.statChipTotal}>{vm.previewRows.length} linhas</span>
+          <span className={styles.statChipOk}>✓ {vm.validRows.length} válidas</span>
+          {vm.invalidRows.length > 0 && (
+            <span className={styles.statChipErr}>✗ {vm.invalidRows.length} erro(s)</span>
+          )}
+        </div>
+      </div>
+
+      {/* Tabela */}
+      <div className={styles.tableWrap} role="region" aria-label="Pré-visualização dos dados">
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">name</th>
+              <th scope="col">email</th>
+              <th scope="col">role</th>
+              <th scope="col">status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {vm.previewRows.map((row) => (
+              <tr key={row.index} className={row.valid ? "" : styles.rowError}>
+                <td>{row.index}</td>
+                <td>{row.name  || <span className={styles.empty}>—</span>}</td>
+                <td>{row.email || <span className={styles.empty}>—</span>}</td>
+                <td>{row.role  || <span className={styles.empty}>—</span>}</td>
+                <td>
+                  {row.valid ? (
+                    <span className={styles.statusOk}>✓ válido</span>
+                  ) : (
+                    <div>
+                      <span className={styles.statusErr}>✗ erro</span>
+                      {row.error && (
+                        <p className={styles.rowErrMsg}>{row.error}</p>
+                      )}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Aviso de linhas inválidas */}
+      {vm.invalidRows.length > 0 && (
+        <div className={styles.previewNotice} role="status">
+          <AlertCircle size={14} aria-hidden="true" />
+          <span>
+            {vm.invalidRows.length === vm.previewRows.length
+              ? "Nenhuma linha válida encontrada. Corrija o arquivo e tente novamente."
+              : `${vm.invalidRows.length} linha(s) serão ignoradas. Os demais `
+                + `${vm.validRows.length} usuários serão criados e receberão e-mails de boas-vindas.`}
+          </span>
+        </div>
+      )}
+
+      {/* Erro de requisição */}
+      {vm.error && (
+        <div role="alert" className={styles.errorBanner}>
+          <AlertCircle size={15} aria-hidden="true" />
+          <span>{vm.error}</span>
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Etapa 3: Resultado ──────────────────────────────────────────────────
+
+  const renderResult = () => {
+    const { result } = vm;
     if (!result) return null;
 
-    // Fallbacks defensivos — acomoda variações de nomenclatura do backend
-    const totalRows    = result.totalRows    ?? result.total   ?? 0;
-    const successCount = result.successCount ?? result.success ?? 0;
-    const failureCount = result.failureCount ?? result.failed  ?? 0;
-    const failures     = Array.isArray(result.failures)
-      ? result.failures
-      : Array.isArray(result.errors) ? result.errors : [];
-
-    const hasFailures = failureCount > 0;
-    const hasSuccess  = successCount > 0;
+    const hasFailures = result.failureCount > 0;
+    const hasSuccess  = result.successCount > 0;
 
     return (
       <div className={styles.resultStage} role="region" aria-label="Resultado da importação">
-        {/* Cartões de resumo */}
+        {/* Cards de resumo */}
         <div className={styles.summaryCards}>
           <div className={styles.summaryCard}>
-            <span className={styles.summaryNumber}>{totalRows}</span>
-            <span className={styles.summaryLabel}>Total de linhas</span>
+            <span className={styles.summaryNum}>{result.totalRows}</span>
+            <span className={styles.summaryLbl}>Total</span>
           </div>
-          <div className={`${styles.summaryCard} ${styles.summaryCardSuccess}`}>
-            <span className={styles.summaryNumber}>{successCount}</span>
-            <span className={styles.summaryLabel}>Criados</span>
+          <div className={`${styles.summaryCard} ${styles.summaryCardOk}`}>
+            <span className={styles.summaryNum}>{result.successCount}</span>
+            <span className={styles.summaryLbl}>Criados</span>
           </div>
-          <div className={`${styles.summaryCard} ${hasFailures ? styles.summaryCardError : ""}`}>
-            <span className={styles.summaryNumber}>{failureCount}</span>
-            <span className={styles.summaryLabel}>Falhas</span>
+          <div className={`${styles.summaryCard} ${hasFailures ? styles.summaryCardErr : ""}`}>
+            <span className={styles.summaryNum}>{result.failureCount}</span>
+            <span className={styles.summaryLbl}>Falhas</span>
           </div>
         </div>
 
-        {/* Banner de status global */}
+        {/* Banner de status */}
         {hasSuccess && !hasFailures && (
-          <div role="status" className={`${styles.statusBanner} ${styles.statusBannerSuccess}`}>
-            <CheckCircle size={16} aria-hidden="true" />
+          <div role="status" className={`${styles.statusBanner} ${styles.bannerSuccess}`}>
+            <CheckCircle size={15} aria-hidden="true" />
             <span>Todos os usuários foram importados com sucesso!</span>
           </div>
         )}
         {hasSuccess && hasFailures && (
-          <div role="status" className={`${styles.statusBanner} ${styles.statusBannerWarning}`}>
-            <AlertCircle size={16} aria-hidden="true" />
+          <div role="status" className={`${styles.statusBanner} ${styles.bannerWarning}`}>
+            <AlertCircle size={15} aria-hidden="true" />
             <span>
-              Importação parcial: {successCount} criado(s),{" "}
-              {failureCount} com falha(s).
+              Importação parcial: {result.successCount} criado(s), {result.failureCount} com falha(s).
             </span>
           </div>
         )}
         {!hasSuccess && hasFailures && (
-          <div role="alert" className={`${styles.statusBanner} ${styles.statusBannerError}`}>
-            <AlertCircle size={16} aria-hidden="true" />
+          <div role="alert" className={`${styles.statusBanner} ${styles.bannerError}`}>
+            <AlertCircle size={15} aria-hidden="true" />
             <span>Nenhum usuário foi importado. Corrija os erros e tente novamente.</span>
           </div>
         )}
 
-        {/* Lista de falhas expansível */}
-        {hasFailures && failures.length > 0 && (
+        {/* Accordion de falhas */}
+        {hasFailures && (
           <div className={styles.failuresSection}>
             <button
               type="button"
@@ -317,28 +364,24 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
               aria-expanded={failuresOpen}
               aria-controls="failures-list"
             >
-              <AlertCircle size={14} aria-hidden="true" />
-              <span>Ver {failureCount} linha(s) com erro</span>
+              <AlertCircle size={13} aria-hidden="true" />
+              <span>Ver {result.failureCount} linha(s) com erro</span>
               {failuresOpen
-                ? <ChevronUp size={14} aria-hidden="true" />
-                : <ChevronDown size={14} aria-hidden="true" />}
+                ? <ChevronUp  size={13} aria-hidden="true" />
+                : <ChevronDown size={13} aria-hidden="true" />}
             </button>
 
             {failuresOpen && (
               <ul
                 id="failures-list"
                 className={styles.failuresList}
-                aria-label="Lista de erros por linha"
+                aria-label="Erros por linha"
               >
-                {failures.map((f, idx) => (
-                  <li key={f.rowIndex ?? idx} className={styles.failureItem}>
-                    <span className={styles.failureRow}>Linha {f.rowIndex ?? idx + 1}</span>
+                {result.failures.map((f) => (
+                  <li key={f.rowIndex} className={styles.failureItem}>
+                    <span className={styles.failureRow}>Linha {f.rowIndex}</span>
                     <span className={styles.failureEmail}>{f.email || "—"}</span>
-                    <span className={styles.failureReason}>
-                      {typeof f.errorReason === "string"
-                        ? f.errorReason
-                        : f.reason ?? f.message ?? JSON.stringify(f.errorReason)}
-                    </span>
+                    <span className={styles.failureReason}>{f.errorReason}</span>
                   </li>
                 ))}
               </ul>
@@ -349,60 +392,81 @@ export default function UserImportModal({ isOpen, onClose, onSuccess }) {
     );
   };
 
+  // ── Footer dinâmico ────────────────────────────────────────────────────
+
   const renderFooter = () => {
-    if (stage === "result") {
+    if (vm.stage === "result") {
       return (
-        <div className={styles.footer}>
-          <Button
-            variant="ghost"
-            onClick={handleReset}
-            aria-label="Importar outro arquivo"
-            icon={RotateCcw}
-          >
+        <>
+          <Button variant="ghost" icon={RotateCcw} onClick={vm.handleReset}>
             Importar outro
           </Button>
           <Button variant="primary" onClick={handleFinish}>
             Concluir
           </Button>
-        </div>
+        </>
       );
     }
 
+    if (vm.stage === "preview") {
+      return (
+        <>
+          <Button variant="ghost" onClick={vm.goBack} disabled={vm.isLoading}>
+            ← Voltar
+          </Button>
+          <Button
+            variant="primary"
+            onClick={vm.handleImport}
+            isLoading={vm.isLoading}
+            disabled={vm.isLoading || vm.validRows.length === 0}
+          >
+            {vm.isLoading
+              ? "Importando…"
+              : `Importar ${vm.validRows.length} usuário(s)`}
+          </Button>
+        </>
+      );
+    }
+
+    // idle
     return (
-      <div className={styles.footer}>
-        <Button variant="ghost" onClick={handleClose} disabled={isLoading}>
+      <>
+        <Button variant="ghost" onClick={handleClose}>
           Cancelar
         </Button>
-        <Button
-          variant="primary"
-          onClick={handleImport}
-          disabled={!selectedFile || isLoading}
-          isLoading={isLoading}
-          aria-busy={isLoading}
-        >
-          {isLoading ? "Importando…" : "Importar Usuários"}
+        <Button variant="primary" disabled>
+          Próximo →
         </Button>
-      </div>
+      </>
     );
   };
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+  // ── Título do Modal (passado ao componente Modal via prop title) ─────────
+
+  const modalTitle = {
+    idle:    "Importar Usuários em Massa",
+    preview: "Preview do Arquivo",
+    result:  "Resultado da Importação",
+  }[vm.stage];
+
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      aria-label="Modal de importação em massa de usuários"
+      title={modalTitle}
+      size="lg"
+      footer={renderFooter()}
     >
-      <div className={styles.container}>
-        {renderHeader()}
-        <div className={styles.body}>
-          {stage === "idle"   && renderUploadStage()}
-          {stage === "result" && renderResultStage()}
+      <div className={styles.layout}>
+        {renderStepper()}
+
+        <div className={styles.content}>
+          {vm.stage === "idle"    && renderIdle()}
+          {vm.stage === "preview" && renderPreview()}
+          {vm.stage === "result"  && renderResult()}
         </div>
-        {renderFooter()}
       </div>
     </Modal>
   );
