@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from "react";
 import {
   Upload,
   Download,
@@ -11,142 +11,369 @@ import {
   ChevronDown,
   Clock,
   Info,
-} from 'lucide-react';
-import { useBulkNotificationViewModel } from '../../viewmodels/useBulkNotificationViewModel';
-import styles from './BulkNotificationPage.module.css';
+  Layers,
+} from "lucide-react";
+import { useBulkNotificationViewModel } from "../../viewmodels/useBulkNotificationViewModel";
+import Button from "../components/common/Button";
+import styles from "./BulkNotificationPage.module.css";
 
 /**
  * Página de envio em massa de notificações via CSV ou JSON.
  *
- * Puramente apresentacional — todo o estado e lógica residem em
- * {@link useBulkNotificationViewModel}. O fluxo guia o usuário em etapas:
- * 1. Selecionar template e versão
- * 2. Baixar o template de preenchimento (CSV ou JSON)
- * 3. Fazer upload do arquivo preenchido
- * 4. Confirmar o envio e visualizar o relatório de resultado
+ * Design: Opção A (claro) — stepper lateral fixo + conteúdo principal à direita.
+ * Estrutura visual idêntica ao UserImportModal para consistência visual do sistema.
  *
- * @component
- * @returns {JSX.Element}
+ * O ViewModel (useBulkNotificationViewModel) não foi alterado.
+ * Esta é apenas uma refatoração da camada de apresentação.
  */
 export default function BulkNotificationPage() {
   const fileInputRef = useRef(null);
 
-  const {
-    templateId,
-    templateVersionId,
-    scheduledAt,
-    isImmediate,
-    file,
-    templates,
-    selectedTemplate,
-    selectedVersion,
-    availableVersions,
-    requiredVariables,
-    isLoadingTemplates,
-    isSending,
-    result,
-    error,
-    fieldErrors,
-    handleTemplateChange,
-    handleVersionChange,
-    handleFileChange,
-    handleScheduledAtChange,
-    handleToggleImmediate,
-    handleDownloadTemplate,
-    handleSubmit,
-    handleReset,
-  } = useBulkNotificationViewModel();
+  const vm = useBulkNotificationViewModel();
 
-  /** Abre o seletor de arquivo nativo ao clicar na zona de drop. */
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // ── File handlers ────────────────────────────────────────────────────────
+
   function openFilePicker() {
     fileInputRef.current?.click();
   }
 
-  /** Processa o arquivo recebido pelo input nativo. */
   function onFileInputChange(e) {
-    handleFileChange(e.target.files?.[0] ?? null);
-    // Limpa o value para permitir re-upload do mesmo arquivo
-    e.target.value = '';
+    vm.handleFileChange(e.target.files?.[0] ?? null);
+    e.target.value = "";
   }
 
-  /** Processa arquivo arrastado para a zona de drop. */
   function onDrop(e) {
     e.preventDefault();
-    handleFileChange(e.dataTransfer.files?.[0] ?? null);
+    setIsDragOver(false);
+    vm.handleFileChange(e.dataTransfer.files?.[0] ?? null);
   }
 
   function onDragOver(e) {
     e.preventDefault();
+    setIsDragOver(true);
   }
 
-  const hasResult   = result !== null;
-  const canDownload = selectedVersion !== null;
-  const canSubmit   = templateId && file && !isSending;
+  function onDragLeave() {
+    setIsDragOver(false);
+  }
+
+  // ── Derived ──────────────────────────────────────────────────────────────
+
+  const canDownload = vm.selectedVersion !== null;
+  const canSubmit = vm.templateId && vm.file && !vm.isSending;
+
+  // Etapa atual do stepper (0-based)
+  const currentStep = vm.result ? 3 : vm.file ? 2 : vm.templateId ? 1 : 0;
+
+  const steps = [
+    { label: "Template", desc: "Selecione o template" },
+    { label: "Modelo", desc: "Baixe e preencha" },
+    { label: "Upload", desc: "Envie o arquivo" },
+    { label: "Resultado", desc: "Resumo do envio" },
+  ];
+
+  // ── Stepper ──────────────────────────────────────────────────────────────
+
+  const renderStepper = () => (
+    <aside className={styles.sidebar}>
+      <div className={styles.brand}>
+        <div className={styles.brandIcon} aria-hidden="true">
+          <Layers size={17} />
+        </div>
+        <span className={styles.brandName}>HERMES</span>
+      </div>
+
+      <nav className={styles.stepList} aria-label="Etapas do envio em massa">
+        {steps.map((step, i) => {
+          const isDone = i < currentStep;
+          const isActive = i === currentStep;
+          const isPending = i > currentStep;
+
+          return (
+            <div key={step.label}>
+              <div
+                className={[
+                  styles.stepItem,
+                  isDone ? styles.stepDone : "",
+                  isActive ? styles.stepActive : "",
+                  isPending ? styles.stepPending : "",
+                ].join(" ")}
+                aria-current={isActive ? "step" : undefined}
+              >
+                <div className={styles.stepNum} aria-hidden="true">
+                  {isDone ? "✓" : i + 1}
+                </div>
+                <div className={styles.stepText}>
+                  <span className={styles.stepTitle}>{step.label}</span>
+                  {(isDone || isActive) && (
+                    <span className={styles.stepDesc}>{step.desc}</span>
+                  )}
+                </div>
+              </div>
+              {i < steps.length - 1 && (
+                <div className={styles.stepConnector} aria-hidden="true" />
+              )}
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+
+  // ── Resultado ────────────────────────────────────────────────────────────
+
+  if (vm.result) {
+    const { result } = vm;
+    const allSuccess = result.failed === 0;
+    const allFailed = result.successful === 0;
+
+    return (
+      <main className={styles.page} aria-label="Resultado do envio em massa">
+        <header className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>Envio em Massa</h1>
+          <p className={styles.pageSubtitle}>
+            Envie notificações para múltiplos destinatários via CSV ou JSON.
+          </p>
+        </header>
+
+        <div className={styles.layout}>
+          {renderStepper()}
+
+          <div className={styles.content}>
+            {/* Banner de status */}
+            <div
+              className={[
+                styles.resultBanner,
+                allSuccess
+                  ? styles.bannerSuccess
+                  : allFailed
+                    ? styles.bannerError
+                    : styles.bannerWarning,
+              ].join(" ")}
+            >
+              <div className={styles.resultBannerIcon}>
+                {allSuccess ? (
+                  <CheckCircle2 size={26} aria-hidden="true" />
+                ) : allFailed ? (
+                  <XCircle size={26} aria-hidden="true" />
+                ) : (
+                  <AlertCircle size={26} aria-hidden="true" />
+                )}
+              </div>
+              <div>
+                <p className={styles.resultBannerTitle}>
+                  {allSuccess
+                    ? "Todos os envios foram concluídos!"
+                    : allFailed
+                      ? "Nenhum envio foi concluído"
+                      : "Envio concluído com alertas"}
+                </p>
+                <p className={styles.resultBannerSub}>
+                  {result.total} total ·{" "}
+                  <strong>
+                    {result.successful} sucesso
+                    {result.successful !== 1 ? "s" : ""}
+                  </strong>
+                  {result.failed > 0 && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <strong className={styles.failText}>
+                        {result.failed} falha{result.failed !== 1 ? "s" : ""}
+                      </strong>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Cards de resumo */}
+            <div className={styles.summaryCards}>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryNum}>{result.total}</span>
+                <span className={styles.summaryLbl}>Total</span>
+              </div>
+              <div className={`${styles.summaryCard} ${styles.summaryCardOk}`}>
+                <span className={styles.summaryNum}>{result.successful}</span>
+                <span className={styles.summaryLbl}>Enviados</span>
+              </div>
+              <div
+                className={`${styles.summaryCard} ${result.failed > 0 ? styles.summaryCardErr : ""}`}
+              >
+                <span className={styles.summaryNum}>{result.failed}</span>
+                <span className={styles.summaryLbl}>Falhas</span>
+              </div>
+            </div>
+
+            {/* Tabela de falhas */}
+            {result.failures.length > 0 && (
+              <div className={styles.resultTable}>
+                <div className={styles.resultTableHeader}>
+                  <XCircle
+                    size={14}
+                    aria-hidden="true"
+                    className={styles.iconErr}
+                  />
+                  <span>Falhas ({result.failures.length})</span>
+                </div>
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Linha</th>
+                        <th>E-mail</th>
+                        <th>Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.failures.map((f) => (
+                        <tr key={`fail-${f.line}`} className={styles.rowErr}>
+                          <td>{f.line}</td>
+                          <td>{f.email ?? "—"}</td>
+                          <td>{f.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Tabela de sucessos */}
+            {result.successes.length > 0 && (
+              <div className={styles.resultTable}>
+                <div className={styles.resultTableHeader}>
+                  <CheckCircle2
+                    size={14}
+                    aria-hidden="true"
+                    className={styles.iconOk}
+                  />
+                  <span>Enviados com sucesso ({result.successes.length})</span>
+                </div>
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Linha</th>
+                        <th>E-mail</th>
+                        <th>Nome</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.successes.map((s) => (
+                        <tr key={`ok-${s.line}`} className={styles.rowOk}>
+                          <td>{s.line}</td>
+                          <td>{s.email}</td>
+                          <td>{s.name ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Ação */}
+            <div className={styles.resultActions}>
+              <Button
+                variant="secondary"
+                icon={RotateCcw}
+                onClick={vm.handleReset}
+              >
+                Novo envio em massa
+              </Button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Formulário ───────────────────────────────────────────────────────────
 
   return (
     <main className={styles.page} aria-label="Envio em massa de notificações">
-      <header className={styles.header}>
-        <h1 className={styles.title}>Envio em Massa</h1>
-        <p className={styles.subtitle}>
-          Envie notificações para múltiplos destinatários de uma vez via CSV ou JSON.
+      <header className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Envio em Massa</h1>
+        <p className={styles.pageSubtitle}>
+          Envie notificações para múltiplos destinatários via CSV ou JSON.
         </p>
       </header>
 
-      {/* ── Resultado ──────────────────────────────────────────────────────── */}
-      {hasResult && (
-        <section className={styles.resultSection} aria-label="Resultado do envio em massa">
-          <ResultSummary result={result} onReset={handleReset} />
-        </section>
-      )}
+      <div className={styles.layout}>
+        {renderStepper()}
 
-      {/* ── Formulário ─────────────────────────────────────────────────────── */}
-      {!hasResult && (
-        <div className={styles.formWrapper}>
-
+        <div className={styles.content}>
           {/* Erro global */}
-          {error && (
-            <div className={styles.globalError} role="alert" aria-live="assertive">
-              <AlertCircle size={16} aria-hidden="true" />
-              <span>{error}</span>
+          {vm.error && (
+            <div
+              className={styles.errorBanner}
+              role="alert"
+              aria-live="assertive"
+            >
+              <AlertCircle size={15} aria-hidden="true" />
+              <span>{vm.error}</span>
             </div>
           )}
 
-          {/* ── Etapa 1: Template ──────────────────────────────────────────── */}
-          <section className={styles.card} aria-labelledby="step-template-title">
-            <StepBadge number={1} />
-            <h2 className={styles.cardTitle} id="step-template-title">
-              Selecione o template
-            </h2>
+          {/* ── Etapa 1: Template ───────────────────────────────────── */}
+          <section className={styles.section} aria-labelledby="step1-title">
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionNum}>1</div>
+              <div>
+                <h2 className={styles.sectionTitle} id="step1-title">
+                  Selecione o template
+                </h2>
+                <p className={styles.sectionDesc}>
+                  Escolha o template e a versão a utilizar
+                </p>
+              </div>
+            </div>
 
             <div className={styles.fieldRow}>
               {/* Template */}
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="templateId">
-                  Template <span className={styles.required} aria-hidden="true">*</span>
+                  Template{" "}
+                  <span className={styles.required} aria-hidden="true">
+                    *
+                  </span>
                 </label>
-                <div className={styles.selectWrapper}>
+                <div className={styles.selectWrap}>
                   <select
                     id="templateId"
-                    className={styles.select}
-                    value={templateId}
-                    onChange={(e) => handleTemplateChange(e.target.value)}
-                    disabled={isLoadingTemplates}
-                    aria-busy={isLoadingTemplates}
-                    aria-invalid={!!fieldErrors.templateId}
-                    aria-describedby={fieldErrors.templateId ? 'err-templateId' : undefined}
+                    className={[
+                      styles.select,
+                      vm.fieldErrors.templateId ? styles.selectErr : "",
+                    ].join(" ")}
+                    value={vm.templateId}
+                    onChange={(e) => vm.handleTemplateChange(e.target.value)}
+                    disabled={vm.isLoadingTemplates}
+                    aria-busy={vm.isLoadingTemplates}
+                    aria-invalid={!!vm.fieldErrors.templateId}
                   >
                     <option value="">
-                      {isLoadingTemplates ? 'Carregando templates…' : 'Selecione um template'}
+                      {vm.isLoadingTemplates
+                        ? "Carregando…"
+                        : "Selecione um template"}
                     </option>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
+                    {vm.templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
                     ))}
                   </select>
-                  <ChevronDown className={styles.selectIcon} size={16} aria-hidden="true" />
+                  <ChevronDown
+                    className={styles.selectIcon}
+                    size={15}
+                    aria-hidden="true"
+                  />
                 </div>
-                {fieldErrors.templateId && (
-                  <span id="err-templateId" className={styles.fieldError} role="alert">
-                    {fieldErrors.templateId}
+                {vm.fieldErrors.templateId && (
+                  <span className={styles.fieldErr} role="alert">
+                    {vm.fieldErrors.templateId}
                   </span>
                 )}
               </div>
@@ -156,90 +383,121 @@ export default function BulkNotificationPage() {
                 <label className={styles.label} htmlFor="templateVersionId">
                   Versão
                 </label>
-                <div className={styles.selectWrapper}>
+                <div className={styles.selectWrap}>
                   <select
                     id="templateVersionId"
                     className={styles.select}
-                    value={templateVersionId}
-                    onChange={(e) => handleVersionChange(e.target.value)}
-                    disabled={!templateId || availableVersions.length === 0}
+                    value={vm.templateVersionId}
+                    onChange={(e) => vm.handleVersionChange(e.target.value)}
+                    disabled={
+                      !vm.templateId || vm.availableVersions.length === 0
+                    }
                   >
                     <option value="">
-                      {!templateId ? 'Selecione um template primeiro' : 'Versão mais recente (padrão)'}
+                      {!vm.templateId
+                        ? "Selecione um template primeiro"
+                        : "Versão mais recente (padrão)"}
                     </option>
-                    {availableVersions.map((v) => (
+                    {vm.availableVersions.map((v) => (
                       <option key={v.id} value={v.id}>
-                        v{v.versionNumber}{v.isActive ? ' (ativa)' : ''}
+                        v{v.versionNumber}
+                        {v.isActive ? " (ativa)" : ""}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className={styles.selectIcon} size={16} aria-hidden="true" />
+                  <ChevronDown
+                    className={styles.selectIcon}
+                    size={15}
+                    aria-hidden="true"
+                  />
                 </div>
               </div>
             </div>
 
             {/* Variáveis detectadas */}
-            {requiredVariables.length > 0 && (
-              <div className={styles.variablesInfo} role="note" aria-label="Variáveis do template">
-                <Info size={14} aria-hidden="true" />
+            {vm.requiredVariables.length > 0 && (
+              <div className={styles.varsInfo} role="note">
+                <Info size={13} aria-hidden="true" />
                 <span>
-                  Variáveis do template:{' '}
-                  {requiredVariables.map((v, i) => (
-                    <span key={v} className={styles.variableChip}>
-                      {`{{${v}}}`}{i < requiredVariables.length - 1 ? '' : ''}
-                    </span>
-                  ))}
-                  {' '}— inclua essas colunas no arquivo.
+                  Variáveis do template:{" "}
+                  {vm.requiredVariables.map((v) => (
+                    <code key={v} className={styles.varChip}>{`{{${v}}}`}</code>
+                  ))}{" "}
+                  — inclua essas colunas no arquivo.
                 </span>
               </div>
             )}
           </section>
 
-          {/* ── Etapa 2: Download do template ─────────────────────────────── */}
+          <div className={styles.divider} aria-hidden="true" />
+
+          {/* ── Etapa 2: Download do modelo ─────────────────────────── */}
           <section
-            className={`${styles.card} ${!canDownload ? styles.cardDisabled : ''}`}
-            aria-labelledby="step-download-title"
+            className={[
+              styles.section,
+              !canDownload ? styles.sectionDisabled : "",
+            ].join(" ")}
+            aria-labelledby="step2-title"
           >
-            <StepBadge number={2} disabled={!canDownload} />
-            <h2 className={styles.cardTitle} id="step-download-title">
-              Baixe o modelo de preenchimento
-            </h2>
-            <p className={styles.cardDescription}>
-              O arquivo é gerado dinamicamente com as colunas do template selecionado.
-              Preencha e faça upload na etapa seguinte.
-            </p>
-            <div className={styles.downloadButtons}>
+            <div className={styles.sectionHeader}>
+              <div
+                className={[
+                  styles.sectionNum,
+                  !canDownload ? styles.sectionNumDisabled : "",
+                ].join(" ")}
+              >
+                2
+              </div>
+              <div>
+                <h2 className={styles.sectionTitle} id="step2-title">
+                  Baixe o modelo de preenchimento
+                </h2>
+                <p className={styles.sectionDesc}>
+                  O arquivo é gerado com as colunas do template selecionado.
+                  Preencha e faça upload na próxima etapa.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.downloadRow}>
               <button
                 type="button"
                 className={styles.downloadBtn}
-                onClick={() => handleDownloadTemplate('csv')}
+                onClick={() => vm.handleDownloadTemplate("csv")}
                 disabled={!canDownload}
-                aria-disabled={!canDownload}
                 aria-label="Baixar modelo CSV"
               >
-                <Download size={16} aria-hidden="true" />
+                <Download size={14} aria-hidden="true" />
                 Modelo CSV
               </button>
               <button
                 type="button"
                 className={styles.downloadBtn}
-                onClick={() => handleDownloadTemplate('json')}
+                onClick={() => vm.handleDownloadTemplate("json")}
                 disabled={!canDownload}
-                aria-disabled={!canDownload}
                 aria-label="Baixar modelo JSON"
               >
-                <Download size={16} aria-hidden="true" />
+                <Download size={14} aria-hidden="true" />
                 Modelo JSON
               </button>
             </div>
           </section>
 
-          {/* ── Etapa 3: Upload ───────────────────────────────────────────── */}
-          <section className={styles.card} aria-labelledby="step-upload-title">
-            <StepBadge number={3} />
-            <h2 className={styles.cardTitle} id="step-upload-title">
-              Faça o upload do arquivo preenchido
-            </h2>
+          <div className={styles.divider} aria-hidden="true" />
+
+          {/* ── Etapa 3: Upload ─────────────────────────────────────── */}
+          <section className={styles.section} aria-labelledby="step3-title">
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionNum}>3</div>
+              <div>
+                <h2 className={styles.sectionTitle} id="step3-title">
+                  Faça o upload do arquivo preenchido
+                </h2>
+                <p className={styles.sectionDesc}>
+                  CSV ou JSON · máx. 5 MB · 200 destinatários
+                </p>
+              </div>
+            </div>
 
             <input
               ref={fileInputRef}
@@ -252,247 +510,143 @@ export default function BulkNotificationPage() {
             />
 
             <div
-              className={`${styles.dropZone} ${fieldErrors.file ? styles.dropZoneError : ''} ${file ? styles.dropZoneSuccess : ''}`}
-              onClick={openFilePicker}
-              onDrop={onDrop}
-              onDragOver={onDragOver}
               role="button"
               tabIndex={0}
               aria-label="Clique ou arraste um arquivo CSV ou JSON aqui"
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openFilePicker()}
+              className={[
+                styles.dropZone,
+                isDragOver ? styles.dropZoneDrag : "",
+                vm.fieldErrors.file ? styles.dropZoneErr : "",
+                vm.file ? styles.dropZoneSuccess : "",
+              ].join(" ")}
+              onClick={openFilePicker}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onKeyDown={(e) =>
+                (e.key === "Enter" || e.key === " ") && openFilePicker()
+              }
             >
-              {file ? (
-                <div className={styles.fileSelected}>
-                  <FileText size={24} className={styles.fileIcon} aria-hidden="true" />
+              {vm.file ? (
+                <div className={styles.filePreview}>
+                  <FileText
+                    size={26}
+                    className={styles.fileIcon}
+                    aria-hidden="true"
+                  />
                   <div>
-                    <p className={styles.fileName}>{file.name}</p>
+                    <p className={styles.fileName}>{vm.file.name}</p>
                     <p className={styles.fileSize}>
-                      {(file.size / 1024).toFixed(1)} KB
+                      {(vm.file.size / 1024).toFixed(1)} KB
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className={styles.dropZonePlaceholder}>
+                <div className={styles.dropPrompt}>
                   <Upload size={24} aria-hidden="true" />
-                  <p>Clique ou arraste o arquivo aqui</p>
-                  <span>.csv ou .json · máx. 5 MB · 200 destinatários</span>
+                  <p>
+                    Arraste o arquivo aqui ou{" "}
+                    <span className={styles.dropLink}>
+                      clique para selecionar
+                    </span>
+                  </p>
+                  <span className={styles.dropHint}>
+                    .csv ou .json · máx. 5 MB · 200 destinatários
+                  </span>
+                  <div className={styles.formatChips} aria-hidden="true">
+                    <span className={styles.chip}>.csv</span>
+                    <span className={styles.chip}>.json</span>
+                  </div>
                 </div>
               )}
             </div>
 
-            {fieldErrors.file && (
-              <span className={styles.fieldError} role="alert" aria-live="polite">
+            {vm.fieldErrors.file && (
+              <div className={styles.fieldErrRow} role="alert">
                 <AlertCircle size={13} aria-hidden="true" />
-                {fieldErrors.file}
-              </span>
+                <span>{vm.fieldErrors.file}</span>
+              </div>
             )}
           </section>
 
-          {/* ── Etapa 4: Agendamento + Envio ──────────────────────────────── */}
-          <section className={styles.card} aria-labelledby="step-send-title">
-            <StepBadge number={4} />
-            <h2 className={styles.cardTitle} id="step-send-title">
-              Confirme e envie
-            </h2>
+          <div className={styles.divider} aria-hidden="true" />
+
+          {/* ── Etapa 4: Confirmar e enviar ─────────────────────────── */}
+          <section className={styles.section} aria-labelledby="step4-title">
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionNum}>4</div>
+              <div>
+                <h2 className={styles.sectionTitle} id="step4-title">
+                  Confirme e envie
+                </h2>
+                <p className={styles.sectionDesc}>
+                  Escolha entre envio imediato ou agendado
+                </p>
+              </div>
+            </div>
 
             {/* Toggle imediato / agendado */}
             <div className={styles.scheduleToggle}>
               <button
                 type="button"
                 role="switch"
-                aria-checked={!isImmediate}
-                className={`${styles.toggleBtn} ${!isImmediate ? styles.toggleBtnActive : ''}`}
-                onClick={handleToggleImmediate}
-                aria-label="Alternar entre envio imediato e agendado"
+                aria-checked={!vm.isImmediate}
+                className={[
+                  styles.toggleBtn,
+                  !vm.isImmediate ? styles.toggleActive : "",
+                ].join(" ")}
+                onClick={vm.handleToggleImmediate}
               >
                 <Clock size={14} aria-hidden="true" />
-                {isImmediate ? 'Envio imediato' : 'Agendado'}
+                {vm.isImmediate ? "Envio imediato" : "Agendado"}
               </button>
             </div>
 
-            {!isImmediate && (
-              <div className={styles.field} style={{ marginTop: 'var(--space-3)' }}>
+            {!vm.isImmediate && (
+              <div className={styles.field}>
                 <label className={styles.label} htmlFor="scheduledAt">
-                  Data e hora de envio <span className={styles.required} aria-hidden="true">*</span>
+                  Data e hora de envio{" "}
+                  <span className={styles.required} aria-hidden="true">
+                    *
+                  </span>
                 </label>
                 <input
                   id="scheduledAt"
                   type="datetime-local"
-                  className={styles.input}
-                  value={scheduledAt}
-                  onChange={(e) => handleScheduledAtChange(e.target.value)}
-                  aria-invalid={!!fieldErrors.scheduledAt}
-                  aria-describedby={fieldErrors.scheduledAt ? 'err-scheduledAt' : undefined}
+                  className={[
+                    styles.input,
+                    vm.fieldErrors.scheduledAt ? styles.inputErr : "",
+                  ].join(" ")}
+                  value={vm.scheduledAt}
+                  onChange={(e) => vm.handleScheduledAtChange(e.target.value)}
+                  aria-invalid={!!vm.fieldErrors.scheduledAt}
                 />
-                {fieldErrors.scheduledAt && (
-                  <span id="err-scheduledAt" className={styles.fieldError} role="alert">
-                    {fieldErrors.scheduledAt}
+                {vm.fieldErrors.scheduledAt && (
+                  <span className={styles.fieldErr} role="alert">
+                    {vm.fieldErrors.scheduledAt}
                   </span>
                 )}
               </div>
             )}
 
-            <div className={styles.sendActions}>
-              <button
-                type="button"
-                className={styles.sendBtn}
-                onClick={handleSubmit}
+            <div className={styles.sendRow}>
+              <Button
+                variant="primary"
+                icon={Send}
+                isLoading={vm.isSending}
                 disabled={!canSubmit}
-                aria-disabled={!canSubmit}
-                aria-busy={isSending}
+                onClick={vm.handleSubmit}
               >
-                {isSending ? (
-                  <>
-                    <span className={styles.spinner} aria-hidden="true" />
-                    Enviando…
-                  </>
-                ) : (
-                  <>
-                    <Send size={16} aria-hidden="true" />
-                    {isImmediate ? 'Enviar agora' : 'Agendar envio'}
-                  </>
-                )}
-              </button>
+                {vm.isSending
+                  ? "Enviando…"
+                  : vm.isImmediate
+                    ? "Enviar agora"
+                    : "Agendar envio"}
+              </Button>
             </div>
           </section>
         </div>
-      )}
+      </div>
     </main>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Sub-componentes internos
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Badge numérico de etapa.
- *
- * @param {{ number: number, disabled?: boolean }} props
- */
-function StepBadge({ number, disabled = false }) {
-  return (
-    <span
-      className={`${styles.stepBadge} ${disabled ? styles.stepBadgeDisabled : ''}`}
-      aria-label={`Etapa ${number}`}
-    >
-      {number}
-    </span>
-  );
-}
-
-/**
- * Seção de resultado exibida após o processamento do envio em massa.
- *
- * @param {{ result: import('../../dto/notification/BulkNotificationResultDTO').BulkNotificationResultDTO, onReset: () => void }} props
- */
-function ResultSummary({ result, onReset }) {
-  const allSuccess = result.failed === 0;
-  const allFailed  = result.successful === 0;
-
-  return (
-    <div className={styles.result}>
-      {/* Resumo */}
-      <div className={`${styles.resultHeader} ${allFailed ? styles.resultHeaderFailed : allSuccess ? styles.resultHeaderSuccess : styles.resultHeaderPartial}`}>
-        <div className={styles.resultIcon}>
-          {allSuccess
-            ? <CheckCircle2 size={28} aria-hidden="true" />
-            : allFailed
-              ? <XCircle size={28} aria-hidden="true" />
-              : <AlertCircle size={28} aria-hidden="true" />
-          }
-        </div>
-        <div>
-          <h2 className={styles.resultTitle}>
-            {allSuccess
-              ? 'Todos os envios foram concluídos!'
-              : allFailed
-                ? 'Nenhum envio foi concluído'
-                : 'Envio concluído com alertas'
-            }
-          </h2>
-          <p className={styles.resultSubtitle} aria-live="polite">
-            {result.total} total ·{' '}
-            <strong className={styles.successCount}>{result.successful} sucesso{result.successful !== 1 ? 's' : ''}</strong>
-            {result.failed > 0 && (
-              <> · <strong className={styles.failCount}>{result.failed} falha{result.failed !== 1 ? 's' : ''}</strong></>
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* Tabela de falhas */}
-      {result.failures.length > 0 && (
-        <div className={styles.failuresSection}>
-          <h3 className={styles.failuresTitle}>
-            <XCircle size={15} aria-hidden="true" />
-            Falhas ({result.failures.length})
-          </h3>
-          <div className={styles.tableWrapper} role="region" aria-label="Lista de falhas">
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th className={styles.th}>Linha</th>
-                  <th className={styles.th}>E-mail</th>
-                  <th className={styles.th}>Motivo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.failures.map((f) => (
-                  <tr key={`fail-${f.line}`} className={styles.trFail}>
-                    <td className={styles.td}>{f.line}</td>
-                    <td className={styles.td}>{f.email ?? '—'}</td>
-                    <td className={styles.td}>{f.reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Tabela de sucessos */}
-      {result.successes.length > 0 && (
-        <div className={styles.successesSection}>
-          <h3 className={styles.successesTitle}>
-            <CheckCircle2 size={15} aria-hidden="true" />
-            Enviados com sucesso ({result.successes.length})
-          </h3>
-          <div className={styles.tableWrapper} role="region" aria-label="Lista de envios bem-sucedidos">
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th className={styles.th}>Linha</th>
-                  <th className={styles.th}>E-mail</th>
-                  <th className={styles.th}>Nome</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.successes.map((s) => (
-                  <tr key={`ok-${s.line}`} className={styles.trSuccess}>
-                    <td className={styles.td}>{s.line}</td>
-                    <td className={styles.td}>{s.email}</td>
-                    <td className={styles.td}>{s.name ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Ação */}
-      <div className={styles.resultActions}>
-        <button
-          type="button"
-          className={styles.resetBtn}
-          onClick={onReset}
-          aria-label="Realizar novo envio em massa"
-        >
-          <RotateCcw size={15} aria-hidden="true" />
-          Novo envio em massa
-        </button>
-      </div>
-    </div>
   );
 }
