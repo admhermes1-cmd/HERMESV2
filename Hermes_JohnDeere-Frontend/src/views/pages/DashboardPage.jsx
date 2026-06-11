@@ -133,7 +133,7 @@ function SuccessRateRing({ rate }) {
   const variant = successRateVariant(rate);
   const colorMap = {
     success: 'var(--color-success)',
-    warning: 'var(--color-warning)',
+    warning: 'var(--color-info)',
     error: 'var(--color-error)',
   };
   const color = colorMap[variant];
@@ -338,7 +338,7 @@ export default function DashboardPage() {
           <>
             <MetricCard
               icon={<CheckCircle2 size={28} />}
-              label="Enviados Hoje"
+              label="Enviados"
               value={stats.sent}
               colorClass={styles.colorSuccess}
             />
@@ -378,8 +378,8 @@ export default function DashboardPage() {
             <div className={`${styles.skeleton} ${styles.skeletonRing}`} />
           ) : (
             <>
-              <SuccessRateRing rate={stats.successRate} />
-              <p className={styles.rateLabel}>Taxa de sucesso hoje</p>
+              <SuccessRateRing rate={stats.successRate * 100} />
+              <p className={styles.rateLabel}>Taxa de sucesso geral</p>
             </>
           )}
         </div>
