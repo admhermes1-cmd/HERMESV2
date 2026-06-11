@@ -1,0 +1,5 @@
+name,email,role,password
+Joao Silva,joao.silva@empresa.com,USER,
+Maria Souza,maria.souza@empresa.com,GESTOR,
+Carlos Pereira,carlos.pereira@empresa.com,ADMIN,Senha@123
+Ana Oliveira,ana.oliveira@empresa.com,USER,
