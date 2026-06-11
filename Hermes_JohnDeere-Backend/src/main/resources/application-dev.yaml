@@ -23,6 +23,9 @@ spring:
       maximum-pool-size: 3
       minimum-idle: 1
 
+  flyway:
+    enabled: false
+
   # ── JPA — Hibernate cria/atualiza o schema automaticamente em dev ──
   jpa:
     hibernate:
@@ -40,8 +43,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.sendgrid.net}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:dev@hermes.local}
+    password: ${MAIL_PASSWORD:dev}
     properties:
       mail:
         smtp:
@@ -82,7 +85,7 @@ hermes:
 
   # CORS — permissivo em dev para facilitar testes com Vite, Storybook, etc.
   cors:
-    allowed-origins: "http://localhost:5173,http://localhost:3000,http://localhost:4173"
+    allowed-origins: "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:4173"
 
 # ── Logging — verboso em dev para facilitar debugging ───────
 logging:
