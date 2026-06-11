@@ -65,6 +65,15 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- ── Flyway — migrations automáticas de schema ────────────── -->
+        <!-- flyway-core 9.x (gerenciado pelo Spring Boot 3.2.5) já      -->
+        <!-- inclui suporte nativo ao PostgreSQL. Não adicionar           -->
+        <!-- flyway-database-postgresql — esse artefato só existe no 10+. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
         <!-- ── JWT (jjwt 0.12.x — API fluente, suporte a HS256/RS256) ─ -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -97,7 +106,8 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
-        <!-- Tentativa de corrigir o erro de envio trocando o método de envio para SendGrid -->
+
+        <!-- SendGrid HTTP API — substitui SMTP (bloqueado pelo Railway) -->
         <dependency>
             <groupId>com.sendgrid</groupId>
             <artifactId>sendgrid-java</artifactId>
@@ -155,10 +165,10 @@
                     <target>17</target>
                     <annotationProcessorPaths>
                         <path>
-                          <groupId>org.projectlombok</groupId>
-                          <artifactId>lombok</artifactId>
-                          <version>1.18.32</version>  
-                       </path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.32</version>
+                        </path>
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>

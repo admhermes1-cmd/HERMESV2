@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.UUID;
+
 /**
  * DTO de entrada para criação e edição de usuários.
  *
@@ -13,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
  * após a criação.</p>
  *
  * <p>A senha nunca é recebida neste DTO; ela é gerada automaticamente pelo backend.</p>
+ * <p>A matrícula nunca é recebida neste DTO; ela é gerada automaticamente pelo backend.</p>
  */
 public record UserRequestDTO(
 
@@ -37,5 +40,18 @@ public record UserRequestDTO(
         /**
          * Indica se o usuário está ativo. Opcional na criação (padrão {@code true}).
          */
-        Boolean isActive
+        Boolean isActive,
+
+        /**
+         * Cargo ou função do usuário na empresa (ex: "Desenvolvedor Sênior").
+         * Campo opcional.
+         */
+        String cargo,
+
+        /**
+         * UUID da célula à qual o usuário pertence.
+         * Obrigatório na criação de usuários com role USER ou GESTOR.
+         * Validado no service antes do save.
+         */
+        UUID celulaId
 ) {}

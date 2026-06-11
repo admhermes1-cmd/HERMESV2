@@ -9,7 +9,7 @@ import java.util.List;
  * Exceção de domínio central do HERMES.
  *
  * <p>Toda exceção de regra de negócio deve ser lançada como {@code AppException},
- * garantindo que o {@link GlobalExceptionHandler} consiga produzi uma resposta HTTP
+ * garantindo que o {@link GlobalExceptionHandler} consiga produzir uma resposta HTTP
  * padronizada, segura e rastreável.</p>
  *
  * <p>Uso recomendado via factory methods estáticos nos services:</p>
@@ -27,6 +27,10 @@ import java.util.List;
  */
 @Getter
 public class AppException extends RuntimeException {
+
+    // -------------------------------------------------------------------------
+    // Factory methods — domínio Usuário
+    // -------------------------------------------------------------------------
 
     /**
      * Cria uma exceção indicando que o usuário solicitado não foi encontrado.
@@ -56,6 +60,15 @@ public class AppException extends RuntimeException {
     }
 
     /**
+     * Cria uma exceção indicando que o admin tentou excluir a própria conta.
+     *
+     * @return {@link AppException} com código {@code USER_CANNOT_DELETE_SELF} (409).
+     */
+    public static AppException userCannotDeleteSelf() {
+        return new AppException(ErrorCode.USER_CANNOT_DELETE_SELF);
+    }
+
+    /**
      * Cria exceção com lista de violações de política de senha.
      *
      * @param violations lista de mensagens descrevendo cada violação.
@@ -63,7 +76,6 @@ public class AppException extends RuntimeException {
      */
     public static AppException passwordPolicyViolation(List<String> violations) {
         String detail = String.join(" | ", violations);
-
         return new AppException(
                 HttpStatus.BAD_REQUEST,
                 ErrorCode.PASSWORD_POLICY_VIOLATION,
@@ -81,14 +93,131 @@ public class AppException extends RuntimeException {
         return new AppException(ErrorCode.PASSWORD_CURRENT_INCORRECT);
     }
 
+    // -------------------------------------------------------------------------
+    // Factory methods — domínio Bulk Import
+    // -------------------------------------------------------------------------
+
     /**
-     * Cria uma exceção indicando que o admin tentou excluir a própria conta.
+     * Arquivo enviado não é CSV nem JSON.
      *
-     * @return {@link AppException} com código {@code USER_CANNOT_DELETE_SELF} (409).
+     * @return {@link AppException} com código {@code BULK_INVALID_FORMAT} e status 400.
      */
-    public static AppException userCannotDeleteSelf() {
-        return new AppException(ErrorCode.USER_CANNOT_DELETE_SELF);
+    public static AppException bulkInvalidFormat() {
+        return new AppException(ErrorCode.BULK_INVALID_FORMAT);
     }
+
+    /**
+     * Arquivo enviado excede o tamanho máximo permitido.
+     *
+     * @return {@link AppException} com código {@code BULK_FILE_TOO_LARGE} e status 400.
+     */
+    public static AppException bulkFileTooLarge() {
+        return new AppException(ErrorCode.BULK_FILE_TOO_LARGE);
+    }
+
+    /**
+     * Arquivo contém mais registros do que o limite por operação.
+     *
+     * @param max limite máximo de registros permitidos.
+     * @return {@link AppException} com código {@code BULK_TOO_MANY_RECORDS} e status 400.
+     */
+    public static AppException bulkTooManyRecords(int max) {
+        return new AppException(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.BULK_TOO_MANY_RECORDS,
+                String.format(ErrorCode.BULK_TOO_MANY_RECORDS.getDefaultMessage(), max),
+                null
+        );
+    }
+
+    /**
+     * Arquivo enviado não contém nenhum registro válido.
+     *
+     * @return {@link AppException} com código {@code BULK_EMPTY_FILE} e status 400.
+     */
+    public static AppException bulkEmptyFile() {
+        return new AppException(ErrorCode.BULK_EMPTY_FILE);
+    }
+
+    /**
+     * Operação de envio em massa foi iniciada sem selecionar um template.
+     *
+     * @return {@link AppException} com código {@code BULK_TEMPLATE_REQUIRED} e status 400.
+     */
+    public static AppException bulkTemplateRequired() {
+        return new AppException(ErrorCode.BULK_TEMPLATE_REQUIRED);
+    }
+
+    // -------------------------------------------------------------------------
+    // Factory methods — domínio Célula
+    // -------------------------------------------------------------------------
+
+    /**
+     * Cria uma exceção indicando que a célula solicitada não foi encontrada.
+     *
+     * @return {@link AppException} com código {@code CELULA_NOT_FOUND} (404).
+     */
+    public static AppException celulaNotFound() {
+        return new AppException(ErrorCode.CELULA_NOT_FOUND);
+    }
+
+    /**
+     * Cria uma exceção indicando que já existe uma célula com o mesmo nome.
+     *
+     * @return {@link AppException} com código {@code CELULA_NOME_DUPLICATE} (409).
+     */
+    public static AppException celulaNomeDuplicate() {
+        return new AppException(ErrorCode.CELULA_NOME_DUPLICATE);
+    }
+
+    /**
+     * Cria uma exceção indicando que o gestor informado não tem role GESTOR.
+     *
+     * @return {@link AppException} com código {@code CELULA_GESTOR_INVALID_ROLE} (400).
+     */
+    public static AppException celulaGestorInvalidRole() {
+        return new AppException(ErrorCode.CELULA_GESTOR_INVALID_ROLE);
+    }
+
+    /**
+     * Cria uma exceção indicando que o gestor informado já gerencia outra célula.
+     *
+     * @return {@link AppException} com código {@code CELULA_GESTOR_ALREADY_ASSIGNED} (409).
+     */
+    public static AppException celulaGestorAlreadyAssigned() {
+        return new AppException(ErrorCode.CELULA_GESTOR_ALREADY_ASSIGNED);
+    }
+
+    /**
+     * Cria uma exceção indicando que um GESTOR tentou editar uma célula que não é a sua.
+     *
+     * @return {@link AppException} com código {@code CELULA_NOT_OWNED_BY_GESTOR} (403).
+     */
+    public static AppException celulaNotOwnedByGestor() {
+        return new AppException(ErrorCode.CELULA_NOT_OWNED_BY_GESTOR);
+    }
+
+    /**
+     * Cria uma exceção indicando que um GESTOR tentou operar sobre um ADMIN ou GESTOR.
+     *
+     * @return {@link AppException} com código {@code GESTOR_CANNOT_EDIT_ADMIN} (403).
+     */
+    public static AppException gestorCannotEditAdmin() {
+        return new AppException(ErrorCode.GESTOR_CANNOT_EDIT_ADMIN);
+    }
+
+    /**
+     * Cria uma exceção indicando conflito na geração de matrícula (race condition).
+     *
+     * @return {@link AppException} com código {@code USER_MATRICULA_CONFLICT} (409).
+     */
+    public static AppException userMatriculaConflict() {
+        return new AppException(ErrorCode.USER_MATRICULA_CONFLICT);
+    }
+
+    // -------------------------------------------------------------------------
+    // Campos
+    // -------------------------------------------------------------------------
 
     /** Status HTTP que será usado na resposta ao cliente. */
     private final HttpStatus httpStatus;
@@ -160,7 +289,7 @@ public class AppException extends RuntimeException {
     }
 
     // -------------------------------------------------------------------------
-    // Factory methods — reduzem verbosidade nos services
+    // Factory methods genéricos
     // -------------------------------------------------------------------------
 
     /**
@@ -239,19 +368,19 @@ public class AppException extends RuntimeException {
     // -------------------------------------------------------------------------
 
     /**
-      * Enumeração tipada de todos os códigos de erro semânticos do HERMES.
+     * Enumeração tipada de todos os códigos de erro semânticos do HERMES.
      *
      * <p>Organizado por domínio para facilitar navegação e manutenção.
      * O nome de cada constante é serializado diretamente no campo {@code code} do JSON de resposta,
      * seguindo o contrato com o frontend.</p>
-      */
+     */
     public enum ErrorCode {
 
         // ------------------------------------------------------------------
         // Auth — autenticação e autorização
         // ------------------------------------------------------------------
 
-         /** Credenciais (usuário/senha) fornecidas estão incorretas. */
+        /** Credenciais (usuário/senha) fornecidas estão incorretas. */
         AUTH_INVALID_CREDENTIALS,
         /** O JWT informado está expirado e não pode mais ser aceito. */
         AUTH_TOKEN_EXPIRED,
@@ -328,11 +457,34 @@ public class AppException extends RuntimeException {
         USER_EMAIL_DUPLICATE(409, "Já existe um usuário com este e-mail"),
         USER_EMAIL_IMMUTABLE(400, "O e-mail não pode ser alterado após a criação"),
         USER_CANNOT_DELETE_SELF(409, "Você não pode excluir sua própria conta"),
+        USER_SEND_EMAIL_FAILED(500, "Falha ao enviar e-mail de boas-vindas"),
+        USER_MATRICULA_CONFLICT(409, "Conflito ao gerar matrícula — tente novamente"),
 
         PASSWORD_POLICY_VIOLATION(400, "A senha não cumpre os requisitos de segurança"),
         PASSWORD_CURRENT_INCORRECT(400, "A senha inserida no campo \"Senha temporária\" está incorreta"),
 
-        USER_SEND_EMAIL_FAILED(500, "Falha ao enviar e-mail de boas-vindas");
+        // ------------------------------------------------------------------
+        // Bulk Import
+        // ------------------------------------------------------------------
+
+        BULK_INVALID_FORMAT(400, "Formato de arquivo inválido — use CSV ou JSON"),
+        BULK_FILE_TOO_LARGE(400, "Arquivo excede o limite de 5 MB permitido"),
+        BULK_TOO_MANY_RECORDS(400, "Importação limitada a %d destinatários por vez"),
+        BULK_EMPTY_FILE(400, "O arquivo não contém registros válidos"),
+        BULK_TEMPLATE_REQUIRED(400, "Selecione um template antes de fazer o upload"),
+
+        // ------------------------------------------------------------------
+        // Célula
+        // ------------------------------------------------------------------
+
+        CELULA_NOT_FOUND(404, "Célula não encontrada"),
+        CELULA_NOME_DUPLICATE(409, "Já existe uma célula com este nome"),
+        CELULA_GESTOR_INVALID_ROLE(400, "O gestor deve ter role GESTOR"),
+        CELULA_GESTOR_ALREADY_ASSIGNED(409, "Este usuário já é gestor de outra célula"),
+        CELULA_NOT_OWNED_BY_GESTOR(403, "Você só pode editar a célula que você gerencia"),
+        GESTOR_CANNOT_EDIT_ADMIN(403, "Gestor não pode editar usuários ADMIN ou GESTOR");
+
+        // ------------------------------------------------------------------
 
         private final int httpStatus;
         private final String defaultMessage;
@@ -352,6 +504,11 @@ public class AppException extends RuntimeException {
         }
 
         public String getDefaultMessage() {
+            return defaultMessage;
+        }
+
+        /** Alias para compatibilidade com usos que chamam {@code getMessage()}. */
+        public String getMessage() {
             return defaultMessage;
         }
     }

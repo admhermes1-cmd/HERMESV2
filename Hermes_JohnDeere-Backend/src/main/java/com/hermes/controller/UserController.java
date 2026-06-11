@@ -4,6 +4,7 @@ import com.hermes.dto.PageResponseDTO;
 import com.hermes.dto.user.UserListResponseDTO;
 import com.hermes.dto.user.UserRequestDTO;
 import com.hermes.dto.user.UserResponseDTO;
+import com.hermes.entity.User;
 import com.hermes.entity.enums.UserRole;
 import com.hermes.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -25,17 +27,17 @@ import java.util.UUID;
 /**
  * Controller REST para gerenciamento de usuários.
  *
- * <p>Todos os endpoints deste controller requerem autenticação e papel {@code ADMIN}.
- * A autorização é reforçada em dois níveis: na configuração do {@code SecurityConfig}
- * (regra de URL) e via {@code @PreAuthorize} em cada método (defesa em profundidade).</p>
+ * <p>Endpoints acessíveis por ADMIN e GESTOR. A validação de quais usuários
+ * cada role pode operar (ex: GESTOR não pode editar ADMIN/GESTOR) é feita
+ * no {@link UserService#validateRoleTarget}, não aqui.</p>
  *
  * <p>Base path: {@code /users}</p>
  */
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Usuários", description = "Gerenciamento de usuários — exclusivo para ADMIN")
+@PreAuthorize("hasAnyRole('ADMIN', 'GESTOR')")
+@Tag(name = "Usuários", description = "Gerenciamento de usuários — ADMIN e GESTOR")
 @SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
@@ -48,9 +50,9 @@ public class UserController {
     /**
      * Lista usuários de forma paginada com filtros opcionais.
      *
-     * @param page     índice da página (0-based, padrão 0).
+     * @param page     índice da página (1-based).
      * @param limit    itens por página (padrão 10).
-     * @param role     filtra por papel: {@code ADMIN} ou {@code USER} (opcional).
+     * @param role     filtra por papel (opcional).
      * @param isActive filtra por situação da conta (opcional).
      * @return página de {@link UserListResponseDTO}.
      */
@@ -58,12 +60,12 @@ public class UserController {
     @Operation(summary = "Listar usuários", description = "Retorna lista paginada com filtros opcionais por role e isActive")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado — apenas ADMIN")
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
     })
     public ResponseEntity<PageResponseDTO<UserListResponseDTO>> listUsers(
-            @Parameter(description = "Índice da página (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Índice da página (1-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Itens por página") @RequestParam(defaultValue = "10") int limit,
-            @Parameter(description = "Filtro por papel (ADMIN | USER)") @RequestParam(required = false) UserRole role,
+            @Parameter(description = "Filtro por papel") @RequestParam(required = false) UserRole role,
             @Parameter(description = "Filtro por situação da conta") @RequestParam(required = false) Boolean isActive
     ) {
         Page<UserListResponseDTO> result = userService.listUsers(Math.max(0, page - 1), limit, role, isActive);
@@ -85,7 +87,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário encontrado"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado — apenas ADMIN")
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
     })
     public ResponseEntity<UserResponseDTO> findById(
             @Parameter(description = "UUID do usuário") @PathVariable UUID id
@@ -100,22 +102,27 @@ public class UserController {
     /**
      * Cria um novo usuário.
      *
-     * <p>A senha é gerada automaticamente pelo backend e enviada por e-mail ao
-     * endereço informado. O campo {@code email} é obrigatório nesta operação.</p>
+     * <p>A senha e a matrícula são geradas automaticamente pelo backend.
+     * O {@link UserService} valida se o requester tem permissão para criar
+     * um usuário com o role informado no DTO.</p>
      *
-     * @param dto dados do novo usuário.
+     * @param dto       dados do novo usuário.
+     * @param requester usuário autenticado extraído do token JWT.
      * @return {@link UserResponseDTO} com status {@code 201 Created}.
      */
     @PostMapping
-    @Operation(summary = "Criar usuário", description = "Gera senha aleatória e envia por e-mail ao usuário criado")
+    @Operation(summary = "Criar usuário", description = "Gera senha e matrícula automáticas e envia por e-mail")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos"),
             @ApiResponse(responseCode = "409", description = "E-mail já cadastrado"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado — apenas ADMIN")
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
     })
-    public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody UserRequestDTO dto) {
-        UserResponseDTO response = userService.createUser(dto);
+    public ResponseEntity<UserResponseDTO> createUser(
+            @Valid @RequestBody UserRequestDTO dto,
+            @AuthenticationPrincipal User requester
+    ) {
+        UserResponseDTO response = userService.createUser(dto, requester);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -126,26 +133,28 @@ public class UserController {
     /**
      * Atualiza os dados de um usuário existente.
      *
-     * <p>O campo {@code email} é ignorado pelo serviço — o e-mail é imutável
-     * após a criação do usuário.</p>
+     * <p>O campo {@code email} é ignorado — o e-mail é imutável após a criação.
+     * A matrícula também é imutável.</p>
      *
-     * @param id  identificador UUID do usuário.
-     * @param dto dados a atualizar ({@code name}, {@code role}, {@code isActive}).
+     * @param id        identificador UUID do usuário.
+     * @param dto       dados a atualizar.
+     * @param requester usuário autenticado extraído do token JWT.
      * @return {@link UserResponseDTO} atualizado.
      */
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar usuário", description = "Edita name, role e isActive. O e-mail é imutável.")
+    @Operation(summary = "Atualizar usuário", description = "Edita name, role, cargo, celula e isActive. E-mail e matrícula são imutáveis.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado — apenas ADMIN")
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
     })
     public ResponseEntity<UserResponseDTO> updateUser(
             @PathVariable UUID id,
-            @Valid @RequestBody UserRequestDTO dto
+            @Valid @RequestBody UserRequestDTO dto,
+            @AuthenticationPrincipal User requester
     ) {
-        return ResponseEntity.ok(userService.updateUser(id, dto));
+        return ResponseEntity.ok(userService.updateUser(id, dto, requester));
     }
 
     // -------------------------------------------------------------------------
@@ -163,7 +172,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Senha redefinida com sucesso"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado — apenas ADMIN")
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
     })
     public ResponseEntity<Void> resetPassword(@PathVariable UUID id) {
         userService.resetPassword(id);
@@ -177,21 +186,26 @@ public class UserController {
     /**
      * Remove um usuário do sistema.
      *
-     * <p>Um administrador não pode excluir a própria conta.</p>
+     * <p>Um administrador não pode excluir a própria conta.
+     * Um GESTOR não pode excluir usuários ADMIN ou GESTOR.</p>
      *
-     * @param id identificador UUID do usuário a ser removido.
+     * @param id        identificador UUID do usuário a ser removido.
+     * @param requester usuário autenticado extraído do token JWT.
      * @return {@code 204 No Content} em caso de sucesso.
      */
     @DeleteMapping("/{id}")
-    @Operation(summary = "Excluir usuário", description = "Remove o usuário. Um admin não pode excluir a própria conta.")
+    @Operation(summary = "Excluir usuário", description = "Remove o usuário. Admin não pode excluir a própria conta.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Usuário removido com sucesso"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
             @ApiResponse(responseCode = "409", description = "Tentativa de auto-exclusão"),
-            @ApiResponse(responseCode = "403", description = "Acesso negado — apenas ADMIN")
+            @ApiResponse(responseCode = "403", description = "Acesso negado")
     })
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
-        userService.deleteUser(id);
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User requester
+    ) {
+        userService.deleteUser(id, requester);
         return ResponseEntity.noContent().build();
     }
 }

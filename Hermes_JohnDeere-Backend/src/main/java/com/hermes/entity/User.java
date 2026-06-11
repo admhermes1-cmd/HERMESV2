@@ -25,12 +25,19 @@ import java.util.UUID;
  *   <li><em>API Key</em> — via header HTTP, usando o campo {@code apiKey} gerado automaticamente.</li>
  * </ul>
  *
+ * <p><strong>Novos campos (v2):</strong></p>
+ * <ul>
+ *   <li>{@code matricula} — inteiro único auto-incremental gerado no {@code @PrePersist}.
+ *       Começa em 10000. Nunca informado pelo frontend.</li>
+ *   <li>{@code cargo} — cargo/função do usuário na empresa (opcional).</li>
+ *   <li>{@code celula} — célula organizacional à qual o usuário pertence.
+ *       Obrigatória na criação; pode ser {@code null} temporariamente se a célula for excluída.</li>
+ * </ul>
+ *
  * <p><strong>Lombok:</strong> {@code @Getter}, {@code @Setter}, {@code @Builder}
  * e {@code @NoArgsConstructor} gerados em tempo de compilação.
  * {@code @AllArgsConstructor} é omitido intencionalmente — o uso de {@code @Builder.Default}
- * em campos booleanos é incompatível com construtores gerados pelo Lombok quando ambos coexistem,
- * causando falha silenciosa na geração de métodos (getters incluídos).
- * Métodos da interface {@link UserDetails} são implementados manualmente para clareza.</p>
+ * em campos booleanos é incompatível com construtores gerados pelo Lombok quando ambos coexistem.</p>
  *
  * <p><strong>Convenção de campos booleanos:</strong> campos booleanos primitivos NÃO devem
  * ter prefixo {@code is} no nome — o Lombok geraria getters como {@code isIsActive()}.
@@ -41,8 +48,9 @@ import java.util.UUID;
 @Table(
     name = "users",
     indexes = {
-        @Index(name = "idx_user_email",   columnList = "email",   unique = true),
-        @Index(name = "idx_user_api_key", columnList = "api_key", unique = true)
+        @Index(name = "idx_user_email",      columnList = "email",      unique = true),
+        @Index(name = "idx_user_api_key",    columnList = "api_key",    unique = true),
+        @Index(name = "idx_user_matricula",  columnList = "matricula",  unique = true)
     }
 )
 @Getter
@@ -72,6 +80,27 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    // ─── Matrícula ────────────────────────────────────────────────────────────
+
+    /**
+     * Matrícula única e auto-incremental do usuário.
+     *
+     * <p>Gerada no {@code @PrePersist}: busca o MAX atual no banco e soma 1.
+     * Valor inicial: 10000 (quando não há nenhum usuário cadastrado ainda).
+     * Nunca informada pelo frontend — sempre gerada pelo backend.</p>
+     */
+    @Column(unique = true, nullable = false, updatable = false)
+    private Integer matricula;
+
+    // ─── Cargo ────────────────────────────────────────────────────────────────
+
+    /**
+     * Cargo ou função do usuário na empresa (ex: "Desenvolvedor Sênior").
+     * Campo opcional — pode ser {@code null}.
+     */
+    @Column(length = 100)
+    private String cargo;
+
     // ─── Controle de acesso ───────────────────────────────────────────────────
 
     @Enumerated(EnumType.STRING)
@@ -84,6 +113,19 @@ public class User implements UserDetails {
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
+
+    // ─── Célula ───────────────────────────────────────────────────────────────
+
+    /**
+     * Célula organizacional à qual o usuário pertence.
+     *
+     * <p>Obrigatória na criação de usuários comuns (validada no service).
+     * Pode ser {@code null} temporariamente caso a célula associada seja excluída —
+     * o Hibernate zera este campo via ON DELETE SET NULL ao remover a célula.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "celula_id", nullable = true)
+    private Celula celula;
 
     // ─── Auditoria ────────────────────────────────────────────────────────────
 
@@ -107,6 +149,8 @@ public class User implements UserDetails {
         if (this.apiKey == null) {
             this.apiKey = UUID.randomUUID().toString().replace("-", "");
         }
+        // matricula é gerada pelo UserService antes do save, via query MAX.
+        // O @PrePersist não acessa o EntityManager — delegado ao service.
     }
 
     @PreUpdate
@@ -117,16 +161,21 @@ public class User implements UserDetails {
     // Construtor all-args manual — necessário para Hibernate/JPA.
     // @AllArgsConstructor não pode coexistir com @Builder.Default.
     public User(UUID id, String name, String email, String password,
-            UserRole role, String apiKey, boolean active,
-            LocalDateTime createdAt, LocalDateTime updatedAt,
-            boolean mustChangePassword) {
+                Integer matricula, String cargo,
+                UserRole role, String apiKey, boolean active,
+                Celula celula,
+                LocalDateTime createdAt, LocalDateTime updatedAt,
+                boolean mustChangePassword) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
+        this.matricula = matricula;
+        this.cargo = cargo;
         this.role = role;
         this.apiKey = apiKey;
         this.active = active;
+        this.celula = celula;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.mustChangePassword = mustChangePassword;
