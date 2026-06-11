@@ -47,6 +47,7 @@
   /* Derivadas semânticas com opacidade */
   --color-error-10:   rgba(220, 38, 38, 0.1);
   --color-success-10: rgba(22, 163, 74, 0.1);
+  --color-warning-10: rgba(217, 119, 6, 0.1);
 
   /* --------------------------------------------------------------------------
      Espaçamentos — Escala consistente de 4px

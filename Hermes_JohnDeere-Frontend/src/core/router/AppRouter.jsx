@@ -33,8 +33,11 @@
  *  ├─ PrivateRoute[ADMIN,GESTOR]
  *  │   └─ MainLayout
  *  │       ├─ /celulas
- *  │       ├─ /celulas/new            (apenas ADMIN — validado no backend)
- *  │       └─ /celulas/:id/edit
+ *  │       └─ /celulas/:id/edit       (GESTOR só pode editar a própria célula — validado no backend)
+ *  │
+ *  ├─ PrivateRoute[ADMIN]
+ *  │   └─ MainLayout
+ *  │       └─ /celulas/new
  *  │
  *  └─ * → NotFoundPage
  */
@@ -194,8 +197,22 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { path: ROUTES.CELULAS,         element: <CelulasPage /> },
-          { path: ROUTES.CELULA_NEW,      element: <CelulaFormPage /> },
           { path: '/celulas/:id/edit',    element: <CelulaFormPage /> },
+        ],
+      },
+    ],
+  },
+
+  // =========================================================================
+  // BLOCO 4.1 — Rota privada apenas ADMIN (Nova Célula)
+  // =========================================================================
+  {
+    element: <PrivateRoute requiredRole="ADMIN" />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: ROUTES.CELULA_NEW,      element: <CelulaFormPage /> },
         ],
       },
     ],

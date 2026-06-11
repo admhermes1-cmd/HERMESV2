@@ -128,9 +128,7 @@ export function useCelulaFormViewModel() {
     if (!fields.nome.trim()) {
       errors.nome = 'O nome da célula é obrigatório.';
     }
-    if (!fields.gestorId) {
-      errors.gestorId = 'Selecione um gestor para a célula.';
-    }
+    // Gestor é opcional — uma célula pode ser criada sem ninguém vinculado.
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -143,7 +141,7 @@ export function useCelulaFormViewModel() {
     try {
       const payload = {
         nome:     fields.nome.trim(),
-        gestorId: fields.gestorId,
+        gestorId: fields.gestorId || null,
       };
 
       if (isEditMode) {

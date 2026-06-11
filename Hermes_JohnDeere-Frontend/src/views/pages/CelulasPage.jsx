@@ -4,21 +4,23 @@ import {
   Pencil,
   Trash2,
   Building2,
-  AlertTriangle,
-  Users,
+  UserCog,
 } from 'lucide-react';
 import { useCelulaListViewModel } from '../../viewmodels/useCelulaListViewModel';
 import { useAuth }                from '../../core/auth/useAuth';
 import Button                     from '../components/common/Button';
-import LoadingSpinner             from '../components/common/LoadingSpinner';
-import { ROUTES, UI }             from '../../core/constants/appConstants';
+import Badge                      from '../components/common/Badge';
+import Table                      from '../components/common/Table';
+import Modal                      from '../components/common/Modal';
+import { ROUTES }                 from '../../core/constants/appConstants';
 import styles                     from './CelulasPage.module.css';
 
 /**
  * Página de listagem de células organizacionais.
  *
- * Exibe uma tabela paginada com nome, gestor, total de usuários e ações.
- * Botão "Nova Célula" visível apenas para ADMIN.
+ * Segue o mesmo padrão visual da página de Usuários (Table, Badge, Modal):
+ * cabeçalho com título e contador, tabela paginada com nome, gestor,
+ * total de usuários e ações. Botão "Nova Célula" visível apenas para ADMIN.
  * Modal de confirmação antes de excluir, com aviso sobre usuários sem célula.
  *
  * @component
@@ -26,7 +28,7 @@ import styles                     from './CelulasPage.module.css';
  */
 export default function CelulasPage() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { user, isAdmin, isGestor } = useAuth();
 
   const {
     celulas,
@@ -47,17 +49,97 @@ export default function CelulasPage() {
 
   const totalPages = Math.ceil(total / limit);
 
+  // -------------------------------------------------------------------------
+  // Definição de colunas da tabela
+  // -------------------------------------------------------------------------
+
+  const columns = [
+    {
+      key: 'nome',
+      header: 'Nome',
+      render: (row) => (
+        <span className={styles.celulaNome}>{row.nome}</span>
+      ),
+    },
+    {
+      key: 'gestor',
+      header: 'Gestor',
+      render: (row) => (
+        row.gestor ? (
+          <span className={styles.gestorInfo}>
+            <span className={styles.gestorAvatar} aria-hidden="true">
+              <UserCog size={16} strokeWidth={1.75} />
+            </span>
+            <span className={styles.gestorTexts}>
+              <span className={styles.gestorNome}>{row.gestor.nome}</span>
+              <span className={styles.gestorEmail}>{row.gestor.email}</span>
+            </span>
+          </span>
+        ) : (
+          <Badge label="Sem gestor" variant="warning" />
+        )
+      ),
+    },
+    {
+      key: 'totalUsuarios',
+      header: 'Usuários',
+      align: 'center',
+      width: '100px',
+      render: (row) => (
+        <Badge label={String(row.totalUsuarios)} variant="neutral" />
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      align: 'right',
+      render: (row) => {
+        // GESTOR só pode editar a própria célula (validado também no backend).
+        const isOwnCelula = row.gestor?.id === user?.id;
+        const canEdit = isAdmin || (isGestor && isOwnCelula);
+
+        return (
+          <span className={styles.actions} role="group" aria-label={`Ações para ${row.nome}`}>
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Pencil}
+                iconOnly
+                ariaLabel={`Editar célula ${row.nome}`}
+                onClick={() => navigate(ROUTES.CELULA_EDIT(row.id))}
+              />
+            )}
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={Trash2}
+                iconOnly
+                ariaLabel={`Excluir célula ${row.nome}`}
+                className={styles.deleteBtn}
+                onClick={() => confirmDelete(row.id)}
+              />
+            )}
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
     <main className={styles.page} aria-labelledby="page-title">
 
       {/* ── Cabeçalho ── */}
       <header className={styles.header}>
-        <div className={styles.titleRow}>
-          <Building2 size={22} strokeWidth={1.75} className={styles.titleIcon} aria-hidden="true" />
-          <h1 id="page-title" className={styles.title}>Células</h1>
-          <span className={styles.totalBadge} aria-label={`${total} células no total`}>
-            {total}
-          </span>
+        <div>
+          <h1 id="page-title" className={styles.title}>
+            <Building2 size={22} strokeWidth={1.75} className={styles.titleIcon} aria-hidden="true" />
+            Células
+          </h1>
+          <p className={styles.subtitle} aria-live="polite">
+            {isLoading ? 'Carregando…' : `${total} célula${total !== 1 ? 's' : ''} encontrada${total !== 1 ? 's' : ''}`}
+          </p>
         </div>
 
         {isAdmin && (
@@ -86,162 +168,76 @@ export default function CelulasPage() {
         </div>
       )}
 
-      {/* ── Conteúdo ── */}
-      {isLoading ? (
-        <LoadingSpinner />
-      ) : celulas.length === 0 ? (
-        <div className={styles.empty} role="status">
-          <Building2 size={40} strokeWidth={1.25} className={styles.emptyIcon} aria-hidden="true" />
-          <p className={styles.emptyText}>Nenhuma célula cadastrada.</p>
-          {isAdmin && (
-            <Button
-              variant="primary"
-              icon={Plus}
-              onClick={() => navigate(ROUTES.CELULA_NEW)}
-            >
-              Criar primeira célula
-            </Button>
-          )}
-        </div>
-      ) : (
-        <>
-          {/* ── Tabela ── */}
-          <div className={styles.tableWrapper} role="region" aria-label="Lista de células">
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">Nome</th>
-                  <th scope="col">Gestor</th>
-                  <th scope="col" className={styles.centerCol}>
-                    <Users size={14} strokeWidth={1.75} aria-hidden="true" />
-                    <span className={styles.srOnly}>Usuários</span>
-                  </th>
-                  <th scope="col" className={styles.actionsCol}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {celulas.map((celula) => (
-                  <tr key={celula.id} className={styles.row}>
-                    <td className={styles.nameCell}>
-                      <span className={styles.celulaNome}>{celula.nome}</span>
-                    </td>
-                    <td className={styles.gestorCell}>
-                      {celula.gestor ? (
-                        <div className={styles.gestorInfo}>
-                          <span className={styles.gestorNome}>{celula.gestor.nome}</span>
-                          <span className={styles.gestorEmail}>{celula.gestor.email}</span>
-                        </div>
-                      ) : (
-                        <span className={styles.semGestor}>Sem gestor</span>
-                      )}
-                    </td>
-                    <td className={styles.centerCol}>
-                      <span className={styles.usuarioCount}>{celula.totalUsuarios}</span>
-                    </td>
-                    <td className={styles.actionsCell}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={Pencil}
-                        onClick={() => navigate(ROUTES.CELULA_EDIT(celula.id))}
-                        aria-label={`Editar célula ${celula.nome}`}
-                        title="Editar"
-                      />
-                      {isAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon={Trash2}
-                          onClick={() => confirmDelete(celula.id)}
-                          aria-label={`Excluir célula ${celula.nome}`}
-                          title="Excluir"
-                          className={styles.deleteBtn}
-                        />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* ── Tabela ── */}
+      <Table
+        columns={columns}
+        data={celulas}
+        isLoading={isLoading}
+        emptyMessage="Nenhuma célula cadastrada."
+        ariaLabel="Lista de células"
+      />
 
-          {/* ── Paginação ── */}
-          {totalPages > 1 && (
-            <nav className={styles.pagination} aria-label="Paginação de células">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPage(page - 1)}
-                disabled={page <= 1}
-                aria-label="Página anterior"
-              >
-                Anterior
-              </Button>
-              <span className={styles.paginationInfo} aria-current="page">
-                Página {page} de {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPage(page + 1)}
-                disabled={page >= totalPages}
-                aria-label="Próxima página"
-              >
-                Próxima
-              </Button>
-            </nav>
-          )}
-        </>
+      {/* ── Paginação ── */}
+      {totalPages > 1 && (
+        <nav className={styles.pagination} aria-label="Paginação de células">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setPage(page - 1)}
+            disabled={page <= 1}
+            aria-label="Página anterior"
+          >
+            Anterior
+          </Button>
+          <span className={styles.pageInfo} aria-current="page">
+            Página {page} de {totalPages}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setPage(page + 1)}
+            disabled={page >= totalPages}
+            aria-label="Próxima página"
+          >
+            Próxima
+          </Button>
+        </nav>
       )}
 
       {/* ── Modal de confirmação de exclusão ── */}
-      {deleteTarget && (
-        <div
-          className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-dialog-title"
-          aria-describedby="delete-dialog-desc"
-        >
-          <div className={styles.modal}>
-            <div className={styles.modalIcon} aria-hidden="true">
-              <AlertTriangle size={28} strokeWidth={1.75} />
-            </div>
-            <h2 id="delete-dialog-title" className={styles.modalTitle}>
-              Excluir célula?
-            </h2>
-            <p id="delete-dialog-desc" className={styles.modalDesc}>
-              Esta ação é permanente. Os usuários vinculados a esta célula
-              ficarão <strong>sem célula atribuída</strong> e precisarão ser
-              realocados manualmente.
-            </p>
+      <Modal
+        isOpen={Boolean(deleteTarget)}
+        onClose={cancelDelete}
+        title="Excluir célula"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={cancelDelete} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              onClick={executeDelete}
+              isLoading={isDeleting}
+              icon={Trash2}
+            >
+              Excluir
+            </Button>
+          </>
+        }
+      >
+        <p>
+          Esta ação é permanente. Os usuários vinculados a esta célula
+          ficarão <strong>sem célula atribuída</strong> e precisarão ser
+          realocados manualmente.
+        </p>
 
-            {deleteError && (
-              <p role="alert" className={styles.modalError}>
-                {deleteError}
-              </p>
-            )}
-
-            <div className={styles.modalActions}>
-              <Button
-                variant="ghost"
-                onClick={cancelDelete}
-                disabled={isDeleting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="danger"
-                onClick={executeDelete}
-                isLoading={isDeleting}
-                aria-label="Confirmar exclusão da célula"
-              >
-                Excluir
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+        {deleteError && (
+          <p role="alert" className={styles.modalError}>
+            {deleteError}
+          </p>
+        )}
+      </Modal>
     </main>
   );
 }

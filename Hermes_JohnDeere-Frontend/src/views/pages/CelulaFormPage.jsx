@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Users } from 'lucide-react';
 import { useCelulaFormViewModel } from '../../viewmodels/useCelulaFormViewModel';
+import { useAuth }   from '../../core/auth/useAuth';
 import Button        from '../components/common/Button';
 import InputField    from '../components/common/InputField';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -12,16 +13,19 @@ import styles        from './CelulaFormPage.module.css';
  *
  * Campos:
  *  - Nome da célula (texto livre, obrigatório)
- *  - Gestor (dropdown com usuários ativos de role GESTOR, obrigatório)
+ *  - Gestor (dropdown com usuários ativos de role GESTOR, opcional — apenas ADMIN pode atribuir/trocar)
  *
  * Em modo edição, exibe a lista de usuários vinculados (read-only).
- * O botão Salvar permanece desabilitado enquanto Nome ou Gestor estiverem vazios.
+ * O botão Salvar permanece desabilitado enquanto o Nome estiver vazio.
+ * GESTOR só acessa esta página para editar a própria célula e não pode trocar o gestor
+ * (o campo é exibido como somente leitura nesse caso — validado também no backend).
  *
  * @component
  * @returns {JSX.Element}
  */
 export default function CelulaFormPage() {
   const navigate = useNavigate();
+  const { isGestor } = useAuth();
 
   const {
     fields,
@@ -38,8 +42,11 @@ export default function CelulaFormPage() {
 
   const pageTitle = isEditMode ? 'Editar célula' : 'Nova célula';
 
-  /** O botão Salvar só habilita quando Nome e Gestor estiverem preenchidos. */
-  const isSaveDisabled = isSubmitting || !fields.nome.trim() || !fields.gestorId;
+  /** GESTOR não pode reatribuir o gestor da própria célula — campo exibido como somente leitura. */
+  const isGestorFieldReadOnly = isGestor && isEditMode;
+
+  /** O botão Salvar só habilita quando o Nome estiver preenchido — Gestor é opcional. */
+  const isSaveDisabled = isSubmitting || !fields.nome.trim();
 
   if (isLoading) {
     return <LoadingSpinner fullscreen overlay />;
@@ -94,37 +101,52 @@ export default function CelulaFormPage() {
           {/* Gestor */}
           <div className={styles.fieldGroup}>
             <label htmlFor="gestorId" className={styles.label}>
-              Gestor <span aria-hidden="true" className={styles.required}>*</span>
+              Gestor
             </label>
-            <select
-              id="gestorId"
-              name="gestorId"
-              className={[
-                styles.select,
-                fieldErrors.gestorId ? styles.selectError : '',
-              ].filter(Boolean).join(' ')}
-              value={fields.gestorId}
-              onChange={handleChange}
-              required
-              aria-required="true"
-              aria-describedby={fieldErrors.gestorId ? 'gestorId-error' : undefined}
-            >
-              <option value="">Selecione um gestor…</option>
-              {gestores.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name} — {g.email}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.gestorId && (
-              <span id="gestorId-error" className={styles.fieldError} role="alert">
-                {fieldErrors.gestorId}
-              </span>
-            )}
-            {gestores.length === 0 && (
-              <span className={styles.fieldHint}>
-                Nenhum usuário com role Gestor encontrado. Crie um gestor antes de criar a célula.
-              </span>
+            {isGestorFieldReadOnly ? (
+              <>
+                <input
+                  id="gestorId"
+                  className={styles.select}
+                  value="Você"
+                  readOnly
+                  disabled
+                />
+                <span className={styles.fieldHint}>
+                  Apenas um administrador pode trocar o gestor desta célula.
+                </span>
+              </>
+            ) : (
+              <>
+                <select
+                  id="gestorId"
+                  name="gestorId"
+                  className={[
+                    styles.select,
+                    fieldErrors.gestorId ? styles.selectError : '',
+                  ].filter(Boolean).join(' ')}
+                  value={fields.gestorId}
+                  onChange={handleChange}
+                  aria-describedby={fieldErrors.gestorId ? 'gestorId-error' : undefined}
+                >
+                  <option value="">Sem gestor</option>
+                  {gestores.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} — {g.email}
+                    </option>
+                  ))}
+                </select>
+                {fieldErrors.gestorId && (
+                  <span id="gestorId-error" className={styles.fieldError} role="alert">
+                    {fieldErrors.gestorId}
+                  </span>
+                )}
+                {gestores.length === 0 && (
+                  <span className={styles.fieldHint}>
+                    Nenhum usuário com role Gestor encontrado. Crie um gestor antes de criar a célula.
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>

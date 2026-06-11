@@ -21,7 +21,7 @@ import { validateUserForm } from '../utils/Validators';
  * @property {string}  role     - Papel: 'ADMIN' | 'GESTOR' | 'USER'.
  * @property {boolean} isActive - Situação da conta.
  * @property {string}  cargo    - Cargo/função (opcional).
- * @property {string}  celulaId - UUID da célula (obrigatório na criação).
+ * @property {string}  celulaId - UUID da célula (opcional).
  */
 
 /**
@@ -140,11 +140,7 @@ export function useUserFormViewModel() {
     e.preventDefault();
 
     const errors = validateUserForm(fields, isEditMode);
-
-    // Validação adicional: célula obrigatória na criação
-    if (!isEditMode && !fields.celulaId) {
-      errors.celulaId = 'Selecione a célula do usuário.';
-    }
+    // Célula é opcional — usuário pode ser criado sem vínculo a nenhuma célula.
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);

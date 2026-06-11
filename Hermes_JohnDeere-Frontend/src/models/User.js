@@ -16,8 +16,9 @@
  * @enum {string}
  */
 export const UserRole = Object.freeze({
-  ADMIN: 'ADMIN',
-  USER:  'USER',
+  ADMIN:  'ADMIN',
+  GESTOR: 'GESTOR',
+  USER:   'USER',
 });
 
 // ---------------------------------------------------------------------------

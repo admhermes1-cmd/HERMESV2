@@ -151,9 +151,7 @@ export default function UserFormPage() {
           {/* Célula */}
           <div className={styles.fieldGroup}>
             <label htmlFor="celulaId" className={styles.label}>
-              Célula{!isEditMode && (
-                <span aria-hidden="true" className={styles.required}> *</span>
-              )}
+              Célula
             </label>
             <select
               id="celulaId"
@@ -162,11 +160,9 @@ export default function UserFormPage() {
                 .filter(Boolean).join(' ')}
               value={fields.celulaId}
               onChange={handleChange}
-              required={!isEditMode}
-              aria-required={!isEditMode}
               aria-describedby={fieldErrors.celulaId ? 'celulaId-error' : 'celulaId-hint'}
             >
-              <option value="">Selecione uma célula…</option>
+              <option value="">Sem célula</option>
               {celulas.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nome}
@@ -182,7 +178,7 @@ export default function UserFormPage() {
               <span id="celulaId-hint" className={styles.fieldHint}>
                 {isEditMode
                   ? 'Altere a célula do usuário se necessário.'
-                  : 'Todo usuário deve pertencer a uma célula.'}
+                  : 'Célula é opcional — pode ser atribuída posteriormente.'}
               </span>
             )}
           </div>

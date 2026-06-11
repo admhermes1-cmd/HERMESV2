@@ -104,6 +104,15 @@ export function useAuth() {
    */
   const isAdmin = context.user?.role === UserRole.ADMIN;
 
+  /**
+   * Getter computado: true se o usuário autenticado é gestor de célula.
+   * GESTOR tem permissões intermediárias — gerencia apenas a própria célula
+   * e os USERs vinculados a ela.
+   *
+   * @type {boolean}
+   */
+  const isGestor = context.user?.role === UserRole.GESTOR;
+
   return {
     // ── Estado ──────────────────────────────────────────────────────────────
     user:            context.user,
@@ -114,6 +123,7 @@ export function useAuth() {
 
     // ── Getter computado ────────────────────────────────────────────────────
     isAdmin,
+    isGestor,
 
     // ── Ações ───────────────────────────────────────────────────────────────
     login:      context.login,
